@@ -140,30 +140,31 @@ class PatientController extends Controller
 
     public function get_person(Request $request) {
 
-			$returndata = array('success'=>true,'message'=>null,'data'=>null);
-			
-			if ($request->filled('username')) {
-				$username = $request->input('username');
-			}else
-				$username = $request->user()->username;
+		$returndata = array('success'=>true,'message'=>null,'data'=>null);
+		
+		if ($request->filled('username')) {
+			$username = $request->input('username');
+		}else
+			$username = $request->user()->username;
 
     	$user = User::select(
 				'people.*',
 				'users.id as user_id',
 				'users.username as user_username',
 				'users.role',
-				'users.name'
+				'users.name',
+				'users.last_login',
 			)
 			->leftJoin('people','people.myresultonline_id','=','users.username')
 			->where('users.username','=',$username)
 			->first();
+		
+		if($user)
+			$returndata['data'] = $user;
+		else
+			$returndata = array('success'=>false,'message'=>'No record found.','data'=>null);
+		
 
-			if($user)
-				$returndata['data'] = $user;
-			else
-				$returndata = array('success'=>false,'message'=>'No record found.','data'=>null);
-			
-
-			return $returndata;
+		return $returndata;
     }
 }

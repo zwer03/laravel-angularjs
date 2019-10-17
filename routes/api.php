@@ -33,8 +33,14 @@ Route::group(['middleware'=>'auth:api'], function() {
 	Route::match(['get', 'post'],'sms_template/edit', 'SmsTemplateController@edit');
 	Route::get('hmo/index', 'HmoController@index');
 	Route::match(['get', 'post'],'hmo/edit', 'HmoController@edit');
+	Route::post('hmo/add', 'HmoController@add');
 	Route::get('medical_package/index', 'MedicalPackageController@index');
 	Route::match(['get', 'post'],'medical_package/edit', 'MedicalPackageController@edit');
+	Route::post('consultant_type/add', 'ConsultantTypeController@add');
+	Route::get('consultant_type/index', 'ConsultantTypeController@index');
+	Route::match(['get', 'post'],'consultant_type/edit', 'ConsultantTypeController@edit');
+	Route::get('consultant_type', 'ConsultantTypeController@list');
+	Route::get('hmo_consultant_type_pf/delete', 'HmoConsultantTypePfController@delete');
 });
 
 

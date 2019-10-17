@@ -23,6 +23,7 @@ use App\Hmo;
 use App\MedicalPackage;
 use App\PatientVisitMedicalPackage;
 use App\PatientVisitHmo;
+use App\HmoConsultantTypePf;
 
 use App\IdentificationType;
 use App\PersonIdentification;
@@ -40,7 +41,9 @@ class ImportController extends Controller
 
 			$new_physician_user_id = null;
 			$new_user_id = null;
-
+			$hmo_id = null;
+			$medical_package_id = null;
+			$non_pay = array('IHMO', 'PHIC');
 			DB::beginTransaction();
 			Log::info($request);
 			try {
@@ -154,15 +157,93 @@ class ImportController extends Controller
 							$save_patient_visit->patient_type = $post_visit['patient_type'];
 							$save_patient_visit->created_at = $post_visit['created_at'];
 							$save_patient_visit->chief_complaint = $post_visit['chief_complaint'];
+							$save_patient_visit->membership_id = $post_visit['membership_id'];
+							$save_patient_visit->bed_room = $post_visit['bed_room'];
+							$save_patient_visit->final_diagnosis = $post_visit['final_diagnosis'];
 							$save_patient_visit->status = $post_visit['status'];
 							$save_patient_visit->hospitalization_plan = $post_visit['hospitalization_plan'];
-							$save_patient_visit->mgh_datetime = $post_visit['mgh_datetime'];
-							$save_patient_visit->untag_mgh_datetime = $post_visit['untag_mgh_datetime'];
-							$save_patient_visit->cancel_datetime = $post_visit['cancel_datetime'];
+							$save_patient_visit->mgh_datetime = $post_visit['mgh_datetime']; // Can be remove
+							$save_patient_visit->untag_mgh_datetime = $post_visit['untag_mgh_datetime']; // Can be remove
+							$save_patient_visit->cancel_datetime = $post_visit['cancel_datetime']; // Can be remove
 							$save_patient_visit->save();
 
 							$patient_visit_id = $save_patient_visit->id;
 
+							// Start Patient Visit Hmo
+							if(isset($post_visit['PatientVisitHmo']) && !empty($post_visit['PatientVisitHmo'])){
+								Log::info('Has PatientVisitHmo.');
+								foreach($post_visit['PatientVisitHmo'] as $patient_visit_hmo){
+									
+									$posted_patient_visit_hmo = $patient_visit_hmo['Hmo'];
+									
+									if (isset($posted_patient_visit_hmo['id']) && !empty($posted_patient_visit_hmo['id']) && ($posted_patient_visit_hmo['id'] != 0 || $posted_patient_visit_hmo['id'] != '0')) {
+										$existing_hmo = Hmo::where('external_id','=',$posted_patient_visit_hmo['id'])->first();
+										if ($existing_hmo) {
+											Log::info('Hmo already exists.');
+											$save_hmo = Hmo::findOrFail($existing_hmo->id);
+											$save_hmo->name = $posted_patient_visit_hmo['name'];
+											$save_hmo->save();
+											$hmo_id = $save_hmo->id;
+										} else {
+											Log::info('Hmo does not exist.');
+											$save_hmo = new Hmo;
+											$save_hmo->external_id = $posted_patient_visit_hmo['id'];
+											$save_hmo->name = $posted_patient_visit_hmo['name'];
+											$save_hmo->save();
+											$hmo_id = $save_hmo->id;
+										}
+										Log::info('Hmo ID: '.$hmo_id);
+										if ($hmo_id) {
+											Log::info('Saving of Patient Visit Hmo');
+											$save_patient_visit_hmo = new PatientVisitHmo;
+											$save_patient_visit_hmo->patient_visit_id = $patient_visit_id;
+											$save_patient_visit_hmo->hmo_id = $hmo_id;
+											
+											if($save_patient_visit_hmo->save()){
+												Log::info('Patient Visit Hmo has been saved.');
+											}
+										}
+									}
+								}
+							}
+
+							// Start Patient Visit Medical Package
+							if(isset($post_visit['PatientVisitMedicalPackage']) && !empty($post_visit['PatientVisitMedicalPackage'])){
+								Log::info('Has PatientVisitMedicalPackage.');
+								foreach($post_visit['PatientVisitMedicalPackage'] as $patient_visit_medical_package){
+									
+									$posted_patient_visit_medical_package = $patient_visit_medical_package['MedicalPackage'];
+									
+									if (isset($posted_patient_visit_medical_package['id']) && !empty($posted_patient_visit_medical_package['id']) && ($posted_patient_visit_medical_package['id'] != 0 || $posted_patient_visit_medical_package['id'] != '0')) {
+										$existing_medical_package = MedicalPackage::where('external_id','=',$posted_patient_visit_medical_package['id'])->first();
+										if ($existing_medical_package) {
+											Log::info('MedicalPackage already exists.');
+											$save_medical_package = MedicalPackage::findOrFail($existing_medical_package->id);
+											$save_medical_package->name = $posted_patient_visit_medical_package['name'];
+											$save_medical_package->save();
+											$medical_package_id = $save_medical_package->id;
+										} else {
+											Log::info('MedicalPackage does not exist.');
+											$save_medical_package = new MedicalPackage;
+											$save_medical_package->external_id = $posted_patient_visit_medical_package['id'];
+											$save_medical_package->name = $posted_patient_visit_medical_package['name'];
+											$save_medical_package->save();
+											$medical_package_id = $save_medical_package->id;
+										}
+										Log::info('MedicalPackage ID: '.$medical_package_id);
+										if ($medical_package_id) {
+											Log::info('Saving of Patient Visit Medical Package');
+											$save_patient_visit_medical_package = new PatientVisitMedicalPackage;
+											$save_patient_visit_medical_package->patient_visit_id = $patient_visit_id;
+											$save_patient_visit_medical_package->medical_package_id = $medical_package_id;
+											
+											if($save_patient_visit_medical_package->save()){
+												Log::info('Patient Visit Medical Package has been saved.');
+											}
+										}
+									}
+								}
+							}
 							// Start Patient Care Provider
 							if(isset($post_visit['PatientCareProvider']) && !empty($post_visit['PatientCareProvider'])){
 								Log::info('Has Patient Care Provider.');
@@ -196,7 +277,7 @@ class ImportController extends Controller
 										if ($existing_physician) {
 											Log::info('Practitioner already exists. Update details.');
 											// Update Practitioer or Physician Basic Details
-											$practitioner = Practitioner::findOrFail($existing_physician->id);
+											$practitioner = Practitioner::findOrFail($existing_physician->id); // TODO : REMOVE THIS LINE AND TEST.
 											$save_physician_people = People::findOrFail($practitioner->person_id);
 											$save_physician_people->firstname = $posted_physician['first_name'];
 											$save_physician_people->middlename = $posted_physician['middle_name'];
@@ -298,9 +379,10 @@ class ImportController extends Controller
 											$save_patient_care_provider->patient_visit_id = $patient_visit_id;
 											$save_patient_care_provider->practitioner_id = $physician_id;
 											$save_patient_care_provider->consultant_type_id = $consultant_type_id;
-											$save_patient_care_provider->pf_amount = $pcp['pf_amount'];
-											$save_patient_care_provider->discount = $pcp['discount'];
-											$save_patient_care_provider->instrument_fee = $pcp['instrument_fee'];
+											$save_patient_care_provider->pf_amount = $pcp['pf_amount']; // Can be remove
+											$save_patient_care_provider->phic_amount = $pcp['phic_amount']; // Can be remove
+											$save_patient_care_provider->discount = $pcp['discount']; // Can be remove
+											$save_patient_care_provider->instrument_fee = $pcp['instrument_fee']; // Can be remove
 											$save_patient_care_provider->created_at = $pcp['created_at'];
 											$save_patient_care_provider->created_by = $user_id;
 											// Start Saving PCPT
@@ -310,7 +392,15 @@ class ImportController extends Controller
 												$pcp_id = $save_patient_care_provider->id;
 												$save_patient_care_provider_tx = new PatientCareProviderTransaction;
 												$save_patient_care_provider_tx->patient_care_provider_id = $pcp_id;
-												// $save_patient_care_provider_tx->status = 0;
+												
+												if(in_array($post_visit['hospitalization_plan'], $non_pay) || $medical_package_id){
+													$config = Configuration::where('id','sms_admission_nonpay_template')->first();
+													$save_patient_care_provider_tx->status = 1;
+												}else{
+													$config = Configuration::where('id','sms_admission_template')->first();
+												}
+
+												
 												$save_patient_care_provider_tx->created_at = date('Y-m-d H:i:s');
 												$save_patient_care_provider_tx->save();
 												Log::info('Patient Care Provider Transaction has been saved.');
@@ -321,11 +411,11 @@ class ImportController extends Controller
 											throw new \Exception("Please provide mobile number.", 1);
 										}
 										$returndata['mobile'] = $posted_physician['mobile'];
-										if($post_visit['status'] == 'A'){
-											$config = Configuration::where('id','sms_admission_template')->first();
-										}elseif($post_visit['status'] == 'F'){
-											$config = Configuration::where('id','sms_mgh_template')->first();
-										}
+										// if($post_visit['status'] == 'A'){
+										// 	$config = Configuration::where('id','sms_admission_template')->first();
+										// }elseif($post_visit['status'] == 'F'){
+										// 	$config = Configuration::where('id','sms_mgh_template')->first();
+										// }
 										
 										if($config->value){
 											$sms = SmsTemplate::select('subject','content')
@@ -344,11 +434,32 @@ class ImportController extends Controller
 								}
 							}
 
+							
+						}else{
+							Log::info('Start process: existing patient visit');
+							$change_hosp_plan = false;
+							if($existing_patient_visit->hospitalization_plan != $post_visit['hospitalization_plan']){
+								$change_hosp_plan = true;
+								Log::info('hosp plan was changed');
+							}
+							$existing_patient_visit->chief_complaint = $post_visit['chief_complaint'];
+							$existing_patient_visit->icd10 = $post_visit['icd10'];
+							$existing_patient_visit->membership_id = $post_visit['membership_id'];
+							$existing_patient_visit->bed_room = $post_visit['bed_room'];
+							$existing_patient_visit->final_diagnosis = $post_visit['final_diagnosis'];
+							$existing_patient_visit->status = $post_visit['status'];
+							$existing_patient_visit->hospitalization_plan = $post_visit['hospitalization_plan'];
+							$existing_patient_visit->mgh_datetime = ($post_visit['untag_mgh_datetime']?null:$post_visit['mgh_datetime']);
+							$existing_patient_visit->untag_mgh_datetime = $post_visit['untag_mgh_datetime'];
+							$existing_patient_visit->cancel_datetime = $post_visit['cancel_datetime'];
+							if($existing_patient_visit->save())
+								Log::info($existing_patient_visit);
+							
 							// Start Patient Visit Hmo
 							if(isset($post_visit['PatientVisitHmo']) && !empty($post_visit['PatientVisitHmo'])){
 								Log::info('Has PatientVisitHmo.');
 								foreach($post_visit['PatientVisitHmo'] as $patient_visit_hmo){
-									$hmo_id = null;
+									
 									$posted_patient_visit_hmo = $patient_visit_hmo['Hmo'];
 									
 									if (isset($posted_patient_visit_hmo['id']) && !empty($posted_patient_visit_hmo['id']) && ($posted_patient_visit_hmo['id'] != 0 || $posted_patient_visit_hmo['id'] != '0')) {
@@ -369,13 +480,16 @@ class ImportController extends Controller
 										}
 										Log::info('Hmo ID: '.$hmo_id);
 										if ($hmo_id) {
-											Log::info('Saving of Patient Visit Hmo');
-											$save_patient_visit_hmo = new PatientVisitHmo;
-											$save_patient_visit_hmo->patient_visit_id = $patient_visit_id;
-											$save_patient_visit_hmo->hmo_id = $hmo_id;
-											
-											if($save_patient_visit_hmo->save()){
-												Log::info('Patient Visit Hmo has been saved.');
+											$existing_patient_visit_hmo = PatientVisitHmo::where([['patient_visit_id','=',$existing_patient_visit->id],['hmo_id','=',$hmo_id]])->first();
+											if (!$existing_patient_visit_hmo) {
+												Log::info('Saving of Patient Visit Hmo');
+												$save_patient_visit_hmo = new PatientVisitHmo;
+												$save_patient_visit_hmo->patient_visit_id = $existing_patient_visit->id;
+												$save_patient_visit_hmo->hmo_id = $hmo_id;
+												
+												if($save_patient_visit_hmo->save()){
+													Log::info('Patient Visit Hmo has been saved.');
+												}
 											}
 										}
 									}
@@ -407,41 +521,28 @@ class ImportController extends Controller
 										}
 										Log::info('MedicalPackage ID: '.$medical_package_id);
 										if ($medical_package_id) {
-											Log::info('Saving of Patient Visit Medical Package');
-											$save_patient_visit_medical_package = new PatientVisitMedicalPackage;
-											$save_patient_visit_medical_package->patient_visit_id = $patient_visit_id;
-											$save_patient_visit_medical_package->medical_package_id = $medical_package_id;
-											
-											if($save_patient_visit_medical_package->save()){
-												Log::info('Patient Visit Medical Package has been saved.');
+											$existing_patient_visit_medical_package = PatientVisitMedicalPackage::where([['patient_visit_id','=',$existing_patient_visit->id],['medical_package_id','=',$medical_package_id]])->first();
+											if (!$existing_patient_visit_medical_package) {
+												Log::info('Saving of Patient Visit Medical Package');
+												$save_patient_visit_medical_package = new PatientVisitMedicalPackage;
+												$save_patient_visit_medical_package->patient_visit_id = $existing_patient_visit->id;
+												$save_patient_visit_medical_package->medical_package_id = $medical_package_id;
+												
+												if($save_patient_visit_medical_package->save()){
+													Log::info('Patient Visit Medical Package has been saved.');
+												}
 											}
 										}
 									}
 								}
 							}
-						}else{
-							Log::info('Start process: existing patient visit');
-							$change_hosp_plan = false;
-							if($existing_patient_visit->hospitalization_plan != $post_visit['hospitalization_plan']){
-								$change_hosp_plan = true;
-								Log::info('hosp plan was changed');
-							}
-							$existing_patient_visit->chief_complaint = $post_visit['chief_complaint'];
-							$existing_patient_visit->status = $post_visit['status'];
-							$existing_patient_visit->hospitalization_plan = $post_visit['hospitalization_plan'];
-							$existing_patient_visit->mgh_datetime = ($post_visit['untag_mgh_datetime']?null:$post_visit['mgh_datetime']);
-							$existing_patient_visit->untag_mgh_datetime = $post_visit['untag_mgh_datetime'];
-							$existing_patient_visit->cancel_datetime = $post_visit['cancel_datetime'];
-							if($existing_patient_visit->save())
-								Log::info($existing_patient_visit);
-							
 							// Start Patient Care Provider
 							if(isset($post_visit['PatientCareProvider']) && !empty($post_visit['PatientCareProvider'])){
 								
 								foreach($post_visit['PatientCareProvider'] as $pcp){
 									$physician_id = null;
 									$consultant_type_id = null;
-									$default_pf_amount = null;
+									$consultant_type_pf = null;
 									$posted_physician = $pcp['Practitioner'];
 									$posted_consultant_type = $pcp['ConsultantType'];
 									if (isset($posted_consultant_type['id']) && !empty($posted_consultant_type['id']) && ($posted_consultant_type['id'] != 0 || $posted_consultant_type['id'] != '0')) {
@@ -450,6 +551,7 @@ class ImportController extends Controller
 											$save_consultant_type = ConsultantType::findOrFail($existing_consultant_type->id);
 											$save_consultant_type->name = $posted_consultant_type['name'];
 											$save_consultant_type->save();
+											$consultant_type_pf = $save_consultant_type->default_pf_amount;
 											$consultant_type_id = $save_consultant_type->id;
 										} else {
 											$save_consultant_type = new ConsultantType;
@@ -561,86 +663,142 @@ class ImportController extends Controller
 											}
 										}
 
-										// Log::info($existing_patient_visit->id);
-										// Log::info($physician_id);
 										// Start Saving PCP
+										$hmo_default_pf = null;
 										$default_pf_config = Configuration::where('id','physician_default_pf')->first();
+										// if($hmo_id){ // TODO : REPOSITION & GET THE FIRST HMO, THIS FUNCTION WILL FAIL IF IT DOES HAVE MULTIPLE HMO.
+										// 	$hmo_consultant_type_pf = HmoConsultantTypePf::where([['hmo_id','=',$hmo_id],['consultant_type_id','=',$consultant_type_id]])->first();
+										// 	$hmo_default_pf = $hmo_consultant_type_pf->default_pf_amount; //Add times the number of days stayed.
+										// 	if($post_visit['mgh_datetime']){
+										// 		Log::info('Start computation of days stayed');
+										// 		$now = time();
+										// 		$mgh_datetime = strtotime($post_visit['mgh_datetime']);
+										// 		$admission_date = strtotime($post_visit['created_at']);
+										// 		$datediff = ($mgh_datetime?$mgh_datetime:$now) - $admission_date;
+
+										// 		$no_of_days = round($datediff / (60 * 60 * 24));
+										// 		if($no_of_days)
+										// 			$hmo_default_pf = $hmo_consultant_type_pf->default_pf_amount * $no_of_days;
+										// 		Log::info('No. of days: '.$no_of_days);
+										// 		Log::info('Total default PF: '.$hmo_default_pf);
+										// 		Log::info('Start computation of days stayed');
+										// 	}
+										// }
 										$link_expiration_config = Configuration::where('id','physician_link_expiration')->first();
 										$mgh_follow_up_config = Configuration::where('id','physician_mgh_follow_up')->first();
 										$existing_pcp = PatientCareProvider::where([['patient_visit_id','=',$existing_patient_visit->id],['practitioner_id','=',$physician_id]])->first();
-										if (!$existing_pcp) {
+										if (!$existing_pcp) { // Add new Patient Care Provider
 											Log::info("PCP does not exist. Create PCP and PCPT.");
 											$save_patient_care_provider = new PatientCareProvider;
 											$save_patient_care_provider->patient_visit_id = $existing_patient_visit->id;
 											$save_patient_care_provider->practitioner_id = $physician_id;
 											$save_patient_care_provider->consultant_type_id = $consultant_type_id;
 											$save_patient_care_provider->pf_amount = $pcp['pf_amount'];
+											$save_patient_care_provider->phic_amount = $pcp['phic_amount'];
 											$save_patient_care_provider->discount = $pcp['discount'];
 											$save_patient_care_provider->instrument_fee = $pcp['instrument_fee'];
 											$save_patient_care_provider->created_at = $pcp['created_at'];
 											$save_patient_care_provider->created_by = $user_id;
 											if($save_patient_care_provider->save()){
+												$config = Configuration::where('id','sms_admission_template')->first();
 												$save_patient_care_provider_tx = new PatientCareProviderTransaction;
+												if(in_array($post_visit['hospitalization_plan'], $non_pay) || $medical_package_id)
+													$save_patient_care_provider_tx->status = 1;
 												$save_patient_care_provider_tx->patient_care_provider_id = $save_patient_care_provider->id;
 												$save_patient_care_provider_tx->save();
 											}
 										}else{
-											
+											Log::info('PCP does exist. Update if necessary.');
 											$existing_pcpt = PatientCareProviderTransaction::where('patient_care_provider_id','=',$existing_pcp->id)->first();
-											// if(!$existing_pcpt){
-											// 	Log::info("Start Creating new PCPT");
-											// 	$save_patient_care_provider_tx = new PatientCareProviderTransaction;
-											// 	$save_patient_care_provider_tx->patient_care_provider_id = $existing_pcp->id;
-											// 	// $save_patient_care_provider_tx->pf_amount = ($default_pf_amount?$default_pf_amount:$default_pf_config->value);
-											// 	// $save_patient_care_provider_tx->follow_up_at = date('Y-m-d H:i:s',strtotime($mgh_follow_up_config->value,strtotime($post_visit['mgh_datetime'])));
-											// 	// $save_patient_care_provider_tx->expired_at = date('Y-m-d H:i:s',strtotime($link_expiration_config->value,strtotime($post_visit['mgh_datetime'])));
-											// 	$save_patient_care_provider_tx->save();
-											// 	Log::info("End Creating new PCPT");
-											// }else{
-												if(!$post_visit['untag_mgh_datetime']){
-													if($post_visit['mgh_datetime'])
-													{
-														$save_patient_care_provider_tx = PatientCareProviderTransaction::findOrFail($existing_pcpt->id);
-														$save_patient_care_provider_tx->pf_amount = ($default_pf_amount?$default_pf_amount:$default_pf_config->value);
+											if($hmo_default_pf)
+												$existing_pcp->pf_amount = $hmo_default_pf;
+											// $existing_pcp->phic_amount = $pcp['phic_amount'];
+											// $existing_pcp->discount = $pcp['discount'];
+											$save_patient_care_provider_tx = PatientCareProviderTransaction::findOrFail($existing_pcpt->id);
+											$save_patient_care_provider_tx->pf_amount = null;
+											$save_patient_care_provider_tx->status = null;
+											$save_patient_care_provider_tx->follow_up_at = null;
+											$save_patient_care_provider_tx->expired_at = null;
+											if(!$post_visit['untag_mgh_datetime']){
+												if($post_visit['mgh_datetime'] && $post_visit['status'] == 'F') // UPON MGH CLEARANCE DO THIS.
+												{
+													Log::info('Condition: Empty Untag mghc and has been mghc with Status F');
+													$config = Configuration::where('id','sms_mgh_template')->first();
+													if($existing_pcp->pf_amount == 0 && !$existing_pcpt->status){
+														Log::info('Condition: PF amount is not eq to 0 and PCPT status is not 1');
+														if($hmo_default_pf){
+															$save_patient_care_provider_tx->status = 0;
+															$save_patient_care_provider_tx->pf_amount = $hmo_default_pf;
+														}elseif($consultant_type_pf)
+															$save_patient_care_provider_tx->pf_amount = $consultant_type_pf;
+														else
+															$save_patient_care_provider_tx->pf_amount = $default_pf_config->value;
 														$save_patient_care_provider_tx->follow_up_at = date('Y-m-d H:i:s',strtotime($mgh_follow_up_config->value,strtotime($post_visit['mgh_datetime'])));
 														$save_patient_care_provider_tx->expired_at = date('Y-m-d H:i:s',strtotime($link_expiration_config->value,strtotime($post_visit['mgh_datetime'])));
-														$save_patient_care_provider_tx->save();
 													}
-												}else{
-													if($post_visit['status'] == 'A'){ //UNTAGGED MGH CLEARANCE RESET PCPT AND PCP
-														$save_patient_care_provider_tx = PatientCareProviderTransaction::findOrFail($existing_pcpt->id);
-														$save_patient_care_provider_tx->pf_amount = null;
-														$save_patient_care_provider_tx->status = null;
-														$save_patient_care_provider_tx->follow_up_at = null;
-														$save_patient_care_provider_tx->expired_at = null;
-														$save_patient_care_provider_tx->save();
-													}
-													elseif($post_visit['status'] == 'F'){ //HAS BEEN UNTAGGED MGHC PREVIOUSLY THEN HIT MGHC AGAIN
-														$save_patient_care_provider_tx = PatientCareProviderTransaction::findOrFail($existing_pcpt->id);
-														$save_patient_care_provider_tx->pf_amount = ($default_pf_amount?$default_pf_amount:$default_pf_config->value);
+												}elseif($post_visit['mgh_datetime'] && $post_visit['status'] == 'A'){
+													Log::info('Condition: Empty Untag mghc and has been mghc with Status A');
+													$config = Configuration::where('id','sms_admission_template')->first();
+													$existing_pcp->pf_amount = 0; // RESET VALUE OF PF AMOUNT IN PCP
+												}
+											}else{
+												if($post_visit['status'] == 'A'){ //UNTAGGED MGH CLEARANCE RESET PCPT AND PCP AND SET SMS TEMPLATE
+													$config = Configuration::where('id','sms_untag_mgh_template')->first();
+													$existing_pcp->pf_amount = 0; // RESET VALUE OF PF AMOUNT IN PCP
+												}
+												elseif($post_visit['status'] == 'F'){ //HAS BEEN UNTAGGED MGHC PREVIOUSLY THEN HIT MGHC AGAIN
+													$config = Configuration::where('id','sms_mgh_template')->first();
+													if($existing_pcp->pf_amount == 0){
+														if($hmo_default_pf){
+															$save_patient_care_provider_tx->status = 0;
+															$save_patient_care_provider_tx->pf_amount = $hmo_default_pf;
+														}elseif($consultant_type_pf)
+															$save_patient_care_provider_tx->pf_amount = $consultant_type_pf;
+														else
+															$save_patient_care_provider_tx->pf_amount = $default_pf_config->value;
 														$save_patient_care_provider_tx->follow_up_at = date('Y-m-d H:i:s',strtotime($mgh_follow_up_config->value,strtotime($post_visit['mgh_datetime'])));
 														$save_patient_care_provider_tx->expired_at = date('Y-m-d H:i:s',strtotime($link_expiration_config->value,strtotime($post_visit['mgh_datetime'])));
-														$save_patient_care_provider_tx->save();
 													}
 												}
-											// }
+											}
+											Log::info($existing_pcp);
+											if(in_array($post_visit['hospitalization_plan'], $non_pay) || $medical_package_id){
+												Log::info("PCP amount set to 0 when Non-pay"); //This may happen upon change of hosp plan. From SP to Non-pay
+												$existing_pcp->pf_amount = 0; 
+											}
+
+											if($existing_pcp->save()){
+												// if(!$existing_pcpt){
+												// 	Log::info("Start Creating new PCPT");
+												// 	$save_patient_care_provider_tx = new PatientCareProviderTransaction;
+												// 	$save_patient_care_provider_tx->patient_care_provider_id = $existing_pcp->id;
+												// 	// $save_patient_care_provider_tx->pf_amount = ($hmo_default_pf?$hmo_default_pf:$default_pf_config->value);
+												// 	// $save_patient_care_provider_tx->follow_up_at = date('Y-m-d H:i:s',strtotime($mgh_follow_up_config->value,strtotime($post_visit['mgh_datetime'])));
+												// 	// $save_patient_care_provider_tx->expired_at = date('Y-m-d H:i:s',strtotime($link_expiration_config->value,strtotime($post_visit['mgh_datetime'])));
+												// 	$save_patient_care_provider_tx->save();
+												// 	Log::info("End Creating new PCPT");
+												// }else{
+												
+												// }
+												Log::info($save_patient_care_provider_tx);
+												if(in_array($post_visit['hospitalization_plan'], $non_pay) || $medical_package_id){
+													if($post_visit['status'] == 'F'){
+														unset($config);
+													}
+													$save_patient_care_provider_tx->status = 1;
+												}
+
+												$save_patient_care_provider_tx->save();
+											}
+											
 										}
 										
-										$returndata['mobile'] = $posted_physician['mobile'];
 										if($change_hosp_plan){
+											unset($config);
 											$config = Configuration::where('id','sms_change_hosp_plan')->first();
 										}
-										elseif($post_visit['status'] == 'A'){
-											// TODO: Add condition if ACTIVE status is coming from discharge.
-											if($post_visit['untag_mgh_datetime'])
-												$config = Configuration::where('id','sms_untag_mgh_template')->first();
-											else
-												$config = Configuration::where('id','sms_admission_template')->first();
-										}
-										elseif($post_visit['status'] == 'F'){
-											$config = Configuration::where('id','sms_mgh_template')->first();
-										}
-										if($config->value){
+
+										if(isset($config->value)){
 											$sms = SmsTemplate::select('subject','content')
 													->where('id',$config->value)
 													->first();
@@ -652,100 +810,23 @@ class ImportController extends Controller
 											$sms->content = str_replace('$onlinepf_link', $onlinepf_link, $sms->content);
 											$sms->content = str_replace('$patient_name', $patient_name, $sms->content);
 											$returndata['message'] = $sms->content;
+											
 											Log::info('detection of pf amount');
 											Log::info($existing_pcp);
 											if($existing_pcp){
 												if($existing_pcp->pf_amount != 0)
-													Log::info('pf amount not eq 0');
-												if($existing_pcp->pf_amount != 0 && $post_visit['status'] == 'F') //If PCP amount has been set upon MGH Clearance do not send message.
+													Log::info('pf amount not eq 0: '.$existing_pcp->pf_amount);
+												if($existing_pcp->pf_amount != 0 ) //If PF amount has value upon MGH Clearance do not send message. Add: do not put pcp follow up and expired
 													$returndata['message'] = null;
 											}
-										}
+										}else
+											$returndata['message'] = null;
+										$returndata['mobile'] = $posted_physician['mobile'];
 									}
 								}
 							}
 							
-							// Start Patient Visit Hmo
-							if(isset($post_visit['PatientVisitHmo']) && !empty($post_visit['PatientVisitHmo'])){
-								Log::info('Has PatientVisitHmo.');
-								foreach($post_visit['PatientVisitHmo'] as $patient_visit_hmo){
-									$hmo_id = null;
-									$posted_patient_visit_hmo = $patient_visit_hmo['Hmo'];
-									
-									if (isset($posted_patient_visit_hmo['id']) && !empty($posted_patient_visit_hmo['id']) && ($posted_patient_visit_hmo['id'] != 0 || $posted_patient_visit_hmo['id'] != '0')) {
-										$existing_hmo = Hmo::where('external_id','=',$posted_patient_visit_hmo['id'])->first();
-										if ($existing_hmo) {
-											Log::info('Hmo already exists.');
-											$save_hmo = Hmo::findOrFail($existing_hmo->id);
-											$save_hmo->name = $posted_patient_visit_hmo['name'];
-											$save_hmo->save();
-											$hmo_id = $save_hmo->id;
-										} else {
-											Log::info('Hmo does not exist.');
-											$save_hmo = new Hmo;
-											$save_hmo->external_id = $posted_patient_visit_hmo['id'];
-											$save_hmo->name = $posted_patient_visit_hmo['name'];
-											$save_hmo->save();
-											$hmo_id = $save_hmo->id;
-										}
-										Log::info('Hmo ID: '.$hmo_id);
-										if ($hmo_id) {
-											$existing_patient_visit_hmo = PatientVisitHmo::where([['patient_visit_id','=',$existing_patient_visit->id],['hmo_id','=',$hmo_id]])->first();
-											if (!$existing_patient_visit_hmo) {
-												Log::info('Saving of Patient Visit Hmo');
-												$save_patient_visit_hmo = new PatientVisitHmo;
-												$save_patient_visit_hmo->patient_visit_id = $existing_patient_visit->id;
-												$save_patient_visit_hmo->hmo_id = $hmo_id;
-												
-												if($save_patient_visit_hmo->save()){
-													Log::info('Patient Visit Hmo has been saved.');
-												}
-											}
-										}
-									}
-								}
-							}
-
-							// Start Patient Visit Medical Package
-							if(isset($post_visit['PatientVisitMedicalPackage']) && !empty($post_visit['PatientVisitMedicalPackage'])){
-								Log::info('Has PatientVisitMedicalPackage.');
-								foreach($post_visit['PatientVisitMedicalPackage'] as $patient_visit_medical_package){
-									$medical_package_id = null;
-									$posted_patient_visit_medical_package = $patient_visit_medical_package['MedicalPackage'];
-									
-									if (isset($posted_patient_visit_medical_package['id']) && !empty($posted_patient_visit_medical_package['id']) && ($posted_patient_visit_medical_package['id'] != 0 || $posted_patient_visit_medical_package['id'] != '0')) {
-										$existing_medical_package = MedicalPackage::where('external_id','=',$posted_patient_visit_medical_package['id'])->first();
-										if ($existing_medical_package) {
-											Log::info('MedicalPackage already exists.');
-											$save_medical_package = MedicalPackage::findOrFail($existing_medical_package->id);
-											$save_medical_package->name = $posted_patient_visit_medical_package['name'];
-											$save_medical_package->save();
-											$medical_package_id = $save_medical_package->id;
-										} else {
-											Log::info('MedicalPackage does not exist.');
-											$save_medical_package = new MedicalPackage;
-											$save_medical_package->external_id = $posted_patient_visit_medical_package['id'];
-											$save_medical_package->name = $posted_patient_visit_medical_package['name'];
-											$save_medical_package->save();
-											$medical_package_id = $save_medical_package->id;
-										}
-										Log::info('MedicalPackage ID: '.$medical_package_id);
-										if ($medical_package_id) {
-											$existing_patient_visit_medical_package = PatientVisitMedicalPackage::where([['patient_visit_id','=',$existing_patient_visit->id],['medical_package_id','=',$medical_package_id]])->first();
-											if (!$existing_patient_visit_medical_package) {
-												Log::info('Saving of Patient Visit Medical Package');
-												$save_patient_visit_medical_package = new PatientVisitMedicalPackage;
-												$save_patient_visit_medical_package->patient_visit_id = $existing_patient_visit->id;
-												$save_patient_visit_medical_package->medical_package_id = $medical_package_id;
-												
-												if($save_patient_visit_medical_package->save()){
-													Log::info('Patient Visit Medical Package has been saved.');
-												}
-											}
-										}
-									}
-								}
-							}
+							
 						}
 					}else
 						$returndata = array('success'=>false,'message'=>'Invalid Status', 'mobile'=>null);

@@ -44,12 +44,13 @@ class UserController extends Controller
 
 				if (!Hash::check($request->old_password, $user->password)) {
 					throw new \Exception("Invalid password", 1);
-				}
+				}elseif($request->old_password == $request->password)
+					throw new \Exception("Password cannot be the same as old", 1);
 			} else {
 				throw new \Exception("Invalid username", 1);
 			}
 
-
+			$user->last_change_password = date('Y-m-d H:i:s');
 			$password = Hash::make($request->password);
 			$user->password = $password;
 			$user->save();
@@ -323,13 +324,14 @@ class UserController extends Controller
 				'users.username as user_username',
 				'users.role',
 				'users.name',
+				'users.last_change_password',
 				'practitioners.external_id as practitioner_external_id'
 			)
 			->leftJoin('people','people.myresultonline_id','=','users.username')
 			->leftJoin('practitioners','practitioners.person_id','=','people.id')
 			->where('users.username','=',$username)
 			->first();
-
+		
 		if($user)
 			$returndata['data'] = $user;
 		else

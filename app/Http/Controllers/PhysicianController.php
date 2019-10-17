@@ -48,9 +48,12 @@ class PhysicianController extends Controller
 					'patient_visits.created_at as admission_datetime',
 					'patient_visits.mgh_datetime as mgh_datetime',
 					'patient_visits.chief_complaint',
+					'patient_visits.icd10',
+					'patient_visits.final_diagnosis',
+					'patient_visits.bed_room',
 					'patient_visits.status as patient_visit_status',
 					'patient_visits.hospitalization_plan',
-					'patient_visits.phic_eligible',
+					'patient_visits.membership_id',
 					'patients.internal_id as patient_id',
 					'people.lastname as px_last_name',
 					'people.firstname as px_first_name',
@@ -61,6 +64,8 @@ class PhysicianController extends Controller
 					'patient_care_providers.id as pcp_id',
 					'patient_care_providers.consultant_type_id',
 					'patient_care_providers.pf_amount',
+					'patient_care_providers.phic_amount',
+					'patient_care_providers.discount',
 					'practitioners.external_id as practitioner_id',
 					'consultant_types.name as consultant_type',
 					'patient_care_provider_transactions.status as status',
@@ -75,6 +80,7 @@ class PhysicianController extends Controller
 				->where('patient_visits.external_visit_number','=',$request->input('visit_number'))
 				->where('practitioners.external_id','=',$practitioner_id)
 				->where('patients.internal_id','=',$request->input('patient_id'))
+				->orderBy('patient_visits.created_at', 'desc')
 				->first();
 				$formatted_patient_visit = array();
 				$patient_visit_hmo = PatientVisitHmo::select(
@@ -157,6 +163,7 @@ class PhysicianController extends Controller
 					'people.birthdate as px_birthdate',
 					'people.marital_status as px_marital_status',
 					'patient_care_providers.pf_amount',
+					'patient_care_providers.phic_amount',
 					'patient_care_providers.discount',
 					'patient_care_providers.instrument_fee',
 					'practitioners.external_id as practitioner_id',
@@ -174,9 +181,12 @@ class PhysicianController extends Controller
 						$whereClause->where('people.lastname','like','%'.($lastname?$lastname:$patient_name).'%')->orWhere('people.firstname','like','%'.($firstname?$firstname:$patient_name).'%');
 					}
 				})
+				->orderBy('patient_visits.created_at', 'desc')
 				->paginate(20);
+				$get_dashboard_data = $this->get_dashboard_data($pratitioner_external_id);
+				$returndata['onqueue'] = $get_dashboard_data['onqueue'];
+				$returndata['completed'] = $get_dashboard_data['completed'];
 				$returndata['data'] = $patients;
-				// Log::info($patients->toArray());
 				Log::info('End getting practitioner patients');
 			} catch(\Exception $e) {
 				$returndata['success'] = false;
@@ -193,45 +203,21 @@ class PhysicianController extends Controller
 		return $returndata;
 	}
 
-	public function get_dashboard_data(Request $request){
-		$returndata = array('success'=>true,'message'=>null,'data'=>null);
+	public function get_dashboard_data($pratitioner_external_id){
+		$onqueue = PatientCareProvider::select()
+		->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
+		->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+		->where('practitioners.external_id','=',$pratitioner_external_id)
+		->where('status', null)->count();
 
-		if ($request->user()->tokenCan('physician')) {
-			try {
-				$practitioner = Practitioner::select(
-					'practitioners.external_id',
-					'people.*'
-				)
-				->Join('people','practitioners.person_id','=','people.id')
-				->where('people.myresultonline_id','=',$request->user()->username)
-				->first();
-				$pratitioner_external_id = $practitioner['external_id'];
-				$onqueue = PatientCareProvider::select()
-				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
-				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
-				->where('practitioners.external_id','=',$pratitioner_external_id)
-				->where('status', null)->count();
+		$completed = PatientCareProvider::select()
+		->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
+		->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+		->where('practitioners.external_id','=',$pratitioner_external_id)
+		->where('status', 1)->count();
 
-				$completed = PatientCareProvider::select()
-				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
-				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
-				->where('practitioners.external_id','=',$pratitioner_external_id)
-				->where('status', 1)->count();
-
-				$returndata['data']['onqueue'] = $onqueue;
-				$returndata['data']['completed'] = $completed;
-			} catch(\Exception $e) {
-				$returndata['success'] = false;
-				$returndata['message'] = 'Physician get_dashboard_data error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-			}
-		} else {
-
-			$returndata['success'] = false;
-			$returndata['message'] = 'Undefined user scope!';
-		}
-
-		// $returndata['data'] = $request->user();
-
+		$returndata['onqueue'] = $onqueue;
+		$returndata['completed'] = $completed;
 		return $returndata;
 	}
 
@@ -252,7 +238,6 @@ class PhysicianController extends Controller
 					$returndata['success'] = false;
 				}else{
 					// Check if already posted.
-					// self-pay only will be accepted.
 					$update_pcp = PatientCareProvider::findOrFail($request->PatientCareProvider['id']);
 					if($save_patient_care_provider_tx->status != 1){
 						$pv = PatientVisit::findOrFail($request->PatientVisit['id']);
@@ -261,25 +246,27 @@ class PhysicianController extends Controller
 							Log::info('Has Medical Package.');
 							Log::info($pvmp);
 						}
-						// TODO: DETECT IF HAS MEDICAL PACKAGE
-						if($pv->hospitalization_plan == 'IHMO' || $pvmp){
-							$update_pcp->pf_amount = $request->PatientCareProvider['pf_amount'];
-							Log::info('Updating PCP.');
-							Log::info($update_pcp);
-							if($update_pcp->save()){
-								$save_patient_care_provider_tx->pf_amount = $request->PatientCareProvider['pf_amount'];
-								$save_patient_care_provider_tx->status = 1;
-								$save_patient_care_provider_tx->expired_at = null;
-								$save_patient_care_provider_tx->follow_up_at = null;
-								Log::info('Updating PCPT.');
-								Log::info($save_patient_care_provider_tx);
-								if ($save_patient_care_provider_tx->save()){
-									$returndata['message'] = 'PF has been saved.';
-								}
-							}
+						// TODO: CHECK IF NHIP
+						$non_pay = array('IHMO', 'PHIC');
+						if(in_array($pv->hospitalization_plan, $non_pay) || $pvmp){
+							// $update_pcp->pf_amount = $request->PatientCareProvider['pf_amount'];
+							// Log::info('Updating PCP.');
+							// Log::info($update_pcp);
+							// if($update_pcp->save()){
+							// 	$save_patient_care_provider_tx->pf_amount = $request->PatientCareProvider['pf_amount'];
+							// 	$save_patient_care_provider_tx->status = 1;
+							// 	$save_patient_care_provider_tx->expired_at = null;
+							// 	$save_patient_care_provider_tx->follow_up_at = null;
+							// 	Log::info('Updating PCPT.');
+							// 	Log::info($save_patient_care_provider_tx);
+							// 	if ($save_patient_care_provider_tx->save()){
+							// 		$returndata['message'] = 'PF has been saved.';
+							// 	}
+							// }
 						}else{
 							$update_pcp->pf_amount = $request->PatientCareProvider['pf_amount'];
 							Log::info('Updating PCP.');
+							Log::info('Start NON-HMO/NO MP PCP.');
 							Log::info($update_pcp);
 							if($update_pcp->save()){
 								$save_patient_care_provider_tx->pf_amount = $request->PatientCareProvider['pf_amount'];
@@ -294,7 +281,7 @@ class PhysicianController extends Controller
 							}
 						}
 					}else{
-						$returndata['message'] = "You cannot edit your PF since it was already posted.";
+						$returndata['message'] = "You can no longer edit your PF.";
 						$returndata['success'] = false;
 					}
 				}

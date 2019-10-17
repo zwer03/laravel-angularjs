@@ -15,7 +15,7 @@ class MedicalPackageController extends Controller
 
 		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
 		try {
-			$returndata['data'] = DB::table('medical_packages')->orderBy('id')->paginate(15);
+			$returndata['data'] = DB::table('medical_packages')->orderBy('id')->paginate(20);
 			// Log::info(DB::table('medical_packages')->paginate(15));
 		} catch(\Exception $e) {
 			$returndata['success'] = false;
