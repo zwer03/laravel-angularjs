@@ -54,7 +54,7 @@ class ConsultantTypeController extends Controller
 						$returndata['message'] = 'ConsultantType has been saved.';
 					}
 				}else
-					$returndata = array('success'=>false, 'message'=>'ConsultantType already exists.', 'data'=>null);
+					$returndata = array('success'=>false, 'message'=>'ConsultantType already exists.');
 			}
 			Log::info('End adding ConsultantType');
 		} catch (\Exception $e) {

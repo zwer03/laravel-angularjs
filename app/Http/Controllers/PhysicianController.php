@@ -29,8 +29,6 @@ class PhysicianController extends Controller
 			Log::info('Start getting patient visit');
 			Log::info($request);
 			try {
-
-				// TODO RETURN ERROR MESSAGE WHEN DATE NOW MINUS MGHC DATE TIME IS GREATER THAN GRACE PERIOD
 				if(!$request->input('practitioner_id')){
 					$practitioner = Practitioner::select(
 						'practitioners.external_id',
@@ -77,12 +75,16 @@ class PhysicianController extends Controller
 				->leftJoin('consultant_types','consultant_types.id','=','patient_care_providers.consultant_type_id')
 				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
-				->where('patient_visits.external_visit_number','=',$request->input('visit_number'))
+				->where('patient_visits.external_id','=',$request->input('visit_number'))
 				->where('practitioners.external_id','=',$practitioner_id)
 				->where('patients.internal_id','=',$request->input('patient_id'))
 				->orderBy('patient_visits.created_at', 'desc')
 				->first();
-				$formatted_patient_visit = array();
+
+				if (empty($patient_visit)) {
+					throw new \Exception("Invalid transaction.", 1);
+				}
+				
 				$patient_visit_hmo = PatientVisitHmo::select(
 					'hmo.name',
 					'hmo.default_pf_amount'
@@ -99,6 +101,8 @@ class PhysicianController extends Controller
 				->leftJoin('medical_packages','medical_packages.id','=','patient_visit_medical_packages.medical_package_id')
 				->where('patient_visits.id','=',$patient_visit->id)
 				->get();
+
+				$formatted_patient_visit = array();
 				$formatted_patient_visit['PatientVisit'] = $patient_visit;
 				$formatted_patient_visit['PatientVisitHmo'] = $patient_visit_hmo;
 				$formatted_patient_visit['PatientVisitMedicalPackages'] = $patient_visit_medical_packages;
@@ -148,6 +152,7 @@ class PhysicianController extends Controller
 				}
 				
 				$patients = PatientVisit::select(
+					'patient_visits.external_id',
 					'patient_visits.external_visit_number as visit_number',
 					'patient_visits.created_at as admission_datetime',
 					'patient_visits.mgh_datetime',
@@ -175,6 +180,7 @@ class PhysicianController extends Controller
 				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
 				->where('practitioners.external_id','=',$pratitioner_external_id)
+				->where('patient_visits.status','<>','X')
 				->where('patient_care_provider_transactions.status','=',$filter_status)
 				->where(function($whereClause) use ($lastname,$firstname, $patient_name) {
 					if($patient_name){
@@ -204,17 +210,21 @@ class PhysicianController extends Controller
 	}
 
 	public function get_dashboard_data($pratitioner_external_id){
-		$onqueue = PatientCareProvider::select()
+		$onqueue = PatientVisit::select()
+		->leftJoin('patient_care_providers','patient_visits.id','=','patient_care_providers.patient_visit_id')
 		->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 		->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+		->where('patient_visits.status','<>','X')
 		->where('practitioners.external_id','=',$pratitioner_external_id)
-		->where('status', null)->count();
+		->where('patient_care_provider_transactions.status', null)->count();
 
-		$completed = PatientCareProvider::select()
+		$completed = PatientVisit::select()
+		->leftJoin('patient_care_providers','patient_visits.id','=','patient_care_providers.patient_visit_id')
 		->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 		->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+		->where('patient_visits.status','<>','X')
 		->where('practitioners.external_id','=',$pratitioner_external_id)
-		->where('status', 1)->count();
+		->where('patient_care_provider_transactions.status', 1)->count();
 
 		$returndata['onqueue'] = $onqueue;
 		$returndata['completed'] = $completed;
@@ -237,18 +247,17 @@ class PhysicianController extends Controller
 					$returndata['message'] = "You can no longer edit your PF.";
 					$returndata['success'] = false;
 				}else{
+					$non_pay = false;
 					// Check if already posted.
 					$update_pcp = PatientCareProvider::findOrFail($request->PatientCareProvider['id']);
 					if($save_patient_care_provider_tx->status != 1){
 						$pv = PatientVisit::findOrFail($request->PatientVisit['id']);
 						$pvmp = PatientVisitMedicalPackage::where('patient_visit_id','=',$request->PatientVisit['id'])->first();
-						if($pvmp){
-							Log::info('Has Medical Package.');
-							Log::info($pvmp);
+						if($pvmp || $pv->hospitalization_plan=='IHMO' || $pv->membership_id == '1036'){ // NHIP membership_id = 1036
+							Log::info('Non-Pay');
+							$non_pay = true;
 						}
-						// TODO: CHECK IF NHIP
-						$non_pay = array('IHMO', 'PHIC');
-						if(in_array($pv->hospitalization_plan, $non_pay) || $pvmp){
+						if($non_pay){
 							// $update_pcp->pf_amount = $request->PatientCareProvider['pf_amount'];
 							// Log::info('Updating PCP.');
 							// Log::info($update_pcp);
@@ -263,6 +272,7 @@ class PhysicianController extends Controller
 							// 		$returndata['message'] = 'PF has been saved.';
 							// 	}
 							// }
+							$returndata['message'] = 'Forbidden access.';
 						}else{
 							$update_pcp->pf_amount = $request->PatientCareProvider['pf_amount'];
 							Log::info('Updating PCP.');
@@ -315,7 +325,7 @@ class PhysicianController extends Controller
 					'patient_care_provider_transactions.id',
 					'patient_care_provider_transactions.pf_amount',
 					'patient_care_provider_transactions.status',
-					'patient_visits.external_visit_number as visit_number',
+					'patient_visits.external_id',
 					'consultant_types.external_id as consultant_type_id',
 					'practitioners.external_id as practitioner_id'
 				)
@@ -355,7 +365,7 @@ class PhysicianController extends Controller
 					'patient_care_provider_transactions.id',
 					'patient_care_provider_transactions.pf_amount',
 					'patient_care_provider_transactions.status',
-					'patient_visits.external_visit_number as visit_number',
+					'patient_visits.external_id as external_id',
 					'patient_care_providers.consultant_type_id',
 					'practitioners.external_id as practitioner_id',
 					'patients.internal_id as px_id',
@@ -382,7 +392,7 @@ class PhysicianController extends Controller
 								->where('id',$config->value)
 								->first();
 						$onlinepf_link_domain_name = Configuration::where('id','domain_name')->first();
-						$onlinepf_link = $onlinepf_link_domain_name->value.'/physicians/professional_fee/'.$patient_care_provider_transaction['visit_number'].'/'.$patient_care_provider_transaction['px_id'].'/'.$patient_care_provider_transaction['practitioner_id'];
+						$onlinepf_link = $onlinepf_link_domain_name->value.'/physicians/professional_fee/'.$patient_care_provider_transaction['external_id'].'/'.$patient_care_provider_transaction['px_id'].'/'.$patient_care_provider_transaction['practitioner_id'];
 						$patient_name = $patient_care_provider_transaction['lastname'].', '.$patient_care_provider_transaction['firstname'].' '.$patient_care_provider_transaction['middlename'];
 						$sms->content = str_replace('$onlinepf_link', $onlinepf_link, $sms->content);
 						$sms->content = str_replace('$patient_name', $patient_name, $sms->content);
