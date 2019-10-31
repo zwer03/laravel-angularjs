@@ -41,6 +41,7 @@ Route::group(['middleware'=>'auth:api'], function() {
 	Route::match(['get', 'post'],'consultant_type/edit', 'ConsultantTypeController@edit');
 	Route::get('consultant_type', 'ConsultantTypeController@list');
 	Route::get('hmo_consultant_type_pf/delete', 'HmoConsultantTypePfController@delete');
+	Route::get('report/income', 'ReportController@income');
 });
 
 
