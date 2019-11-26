@@ -422,6 +422,22 @@ class ImportController extends Controller
 											}
 											
 										}
+										if(!$this->check_mobile($posted_physician['mobile'])){
+											$audit_data = array(
+												"user_id" => $request->user()->id,
+												"url" => "his_posts",
+												"action" => "his_posts",
+												"remarks" => 'CODE #0005 Invalid mobile number. '.$posted_physician['mobile'],
+												"device" => null,
+												"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+												"device_os" => null,
+												"browser" => null,
+												"browser_version" => null
+											);
+											$iUser->audit($audit_data);
+											throw new \Exception("Invalid mobile number.", 1);
+										}else
+											$posted_physician['mobile'] = $this->check_mobile($posted_physician['mobile']);
 										if (empty($posted_physician['mobile'])) {
 											throw new \Exception("Please provide mobile number.", 1);
 										}
@@ -939,5 +955,18 @@ class ImportController extends Controller
 		}
 
 		return Response::json($returndata);
+	}
+
+	public function check_mobile($contact){
+		$contacts = explode("/",$contact);
+		foreach($contacts as $c_val){
+			Log::info("start cleaning mobile");
+			$clean = str_replace("-","",$c_val);
+			$clean=preg_replace('/\s+/', '', $clean);
+			Log::info($clean);
+			if (preg_match("/^(?:09|\+?639)(?!.*-.*-)(?:\d(?:-)?){9}$/m", $clean)) {
+				return $clean;
+			}
+		}
 	}
 }
