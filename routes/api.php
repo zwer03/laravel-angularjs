@@ -42,6 +42,7 @@ Route::group(['middleware'=>'auth:api'], function() {
 	Route::get('consultant_type', 'ConsultantTypeController@list');
 	Route::get('hmo_consultant_type_pf/delete', 'HmoConsultantTypePfController@delete');
 	Route::get('report/income', 'ReportController@income');
+	Route::patch('pcp/toggle_show_pf', 'PatientCareProviderController@toggle_show_pf');
 });
 
 
@@ -49,6 +50,7 @@ Route::group(['middleware'=>'auth:api'], function() {
 Route::group(['middleware'=>['auth:api','scope:physician']], function() {
 	Route::get('physician/get_patient_visit', 'PhysicianController@get_patient_visit');
 	Route::get('physician/get_practitioner_px', 'PhysicianController@get_practitioner_px');
+	Route::get('physician/get_other_physician', 'PhysicianController@get_other_physician');
 	Route::post('physician/set_professional_fee', 'PhysicianController@set_professional_fee');
 	Route::get('physician/dashboard', 'PhysicianController@get_dashboard_data');
 });

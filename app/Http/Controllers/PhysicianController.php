@@ -64,6 +64,7 @@ class PhysicianController extends Controller
 					'patient_care_providers.pf_amount',
 					'patient_care_providers.phic_amount',
 					'patient_care_providers.discount',
+					'patient_care_providers.show_pf',
 					'practitioners.external_id as practitioner_id',
 					'consultant_types.name as consultant_type',
 					'patient_care_provider_transactions.status as status',
@@ -80,7 +81,28 @@ class PhysicianController extends Controller
 				->where('patients.internal_id','=',$request->input('patient_id'))
 				->orderBy('patient_visits.created_at', 'desc')
 				->first();
-
+				$other_physician = PatientVisit::select(
+					'patient_visits.id',
+					'people.lastname',
+					'people.firstname',
+					'people.middlename',
+					'patient_care_providers.id as pcp_id',
+					'patient_care_providers.consultant_type_id',
+					'patient_care_providers.pf_amount',
+					'patient_care_providers.phic_amount',
+					'patient_care_providers.discount',
+					'practitioners.external_id as practitioner_id',
+					'consultant_types.name as consultant_type'
+				)
+				->leftJoin('patient_care_providers','patient_care_providers.patient_visit_id','=','patient_visits.id')
+				->leftJoin('consultant_types','consultant_types.id','=','patient_care_providers.consultant_type_id')
+				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+				->leftJoin('people','practitioners.person_id','=','people.id')
+				->where('patient_visits.external_visit_number','=',$patient_visit['visit_number'])
+				->where('practitioners.external_id','<>',$practitioner_id)
+				->where('patient_care_providers.show_pf','=',1)
+				->orderBy('patient_visits.created_at', 'desc')
+				->get();
 				if (empty($patient_visit)) {
 					throw new \Exception("Invalid transaction.", 1);
 				}
@@ -106,6 +128,7 @@ class PhysicianController extends Controller
 				$formatted_patient_visit['PatientVisit'] = $patient_visit;
 				$formatted_patient_visit['PatientVisitHmo'] = $patient_visit_hmo;
 				$formatted_patient_visit['PatientVisitMedicalPackages'] = $patient_visit_medical_packages;
+				$formatted_patient_visit['OtherPhysician'] = $other_physician;
 				$returndata['data'] = $formatted_patient_visit;
 				// Log::info($formatted_patient_visit);
 				Log::info('End getting patient visit');
@@ -124,6 +147,59 @@ class PhysicianController extends Controller
 		return $returndata;
 	}
 	
+	public function get_other_physician(Request $request) {
+
+    	$returndata = array('success'=>true,'message'=>null,'data'=>null);
+
+		if ($request->user()->tokenCan('physician')) {
+
+			Log::info('Start getting other physician');
+			Log::info($request);
+			try {
+				$patient_visit = PatientVisit::select(
+					'patient_visits.id',
+					'people.lastname',
+					'people.firstname',
+					'people.middlename',
+					'patient_care_providers.id as pcp_id',
+					'patient_care_providers.consultant_type_id',
+					'patient_care_providers.pf_amount',
+					'patient_care_providers.phic_amount',
+					'patient_care_providers.discount',
+					'practitioners.external_id as practitioner_id',
+					'consultant_types.name as consultant_type'
+				)
+				->leftJoin('patient_care_providers','patient_care_providers.patient_visit_id','=','patient_visits.id')
+				->leftJoin('consultant_types','consultant_types.id','=','patient_care_providers.consultant_type_id')
+				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+				->leftJoin('people','practitioners.person_id','=','people.id')
+				->where('patient_visits.external_visit_number','=',$request->input('visit_number'))
+				->orderBy('patient_visits.created_at', 'desc')
+				->get();
+				if (empty($patient_visit)) {
+					throw new \Exception("Invalid transaction.", 1);
+				}
+
+				$formatted_patient_visit = array();
+				$formatted_patient_visit['PatientVisit'] = $patient_visit;
+				$returndata['data'] = $formatted_patient_visit;
+				Log::info($formatted_patient_visit);
+				Log::info('End getting other physician');
+			} catch(\Exception $e) {
+				$returndata['success'] = false;
+				$returndata['message'] = 'Physician get_patients error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
+			}
+		} else {
+
+			$returndata['success'] = false;
+			$returndata['message'] = 'Undefined user scope!';
+		}
+
+		// $returndata['data'] = $request->user();
+
+		return $returndata;
+	}
+
 	public function get_practitioner_px(Request $request) {
 
     	$returndata = array('success'=>true,'message'=>null,'data'=>null);
@@ -253,7 +329,7 @@ class PhysicianController extends Controller
 					if($save_patient_care_provider_tx->status != 1){
 						$pv = PatientVisit::findOrFail($request->PatientVisit['id']);
 						$pvmp = PatientVisitMedicalPackage::where('patient_visit_id','=',$request->PatientVisit['id'])->first();
-						if($pvmp || $pv->hospitalization_plan=='IHMO' || $pv->membership_id == '1036'){ // NHIP membership_id = 1036
+						if($pvmp || $pv->hospitalization_plan=='IHMO'){
 							Log::info('Non-Pay');
 							$non_pay = true;
 						}
