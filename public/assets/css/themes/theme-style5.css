@@ -1,0 +1,303 @@
+/* ---------------------------------------------------------------------- */
+/*  Theme Default
+/* ---------------------------------------------------------------------- */
+/* line 10, ../../sass/themes/theme-style5.scss */
+body {
+  background-color: #ffffff !important;
+}
+/* line 12, ../../sass/themes/theme-style5.scss */
+body.layout-boxed {
+  background: url("../../images/bg_2.png") #ffffff;
+}
+
+/* line 16, ../../sass/themes/theme-style5.scss */
+.main-container, #pageslide-left, #pageslide-right {
+  background-color: #ffffff !important;
+}
+
+/* line 19, ../../sass/themes/theme-style5.scss */
+.label-default, .badge-default {
+  background: #F58A5C !important;
+}
+
+/* line 22, ../../sass/themes/theme-style5.scss */
+.topbar {
+  background: #545C67;
+  background-color: #6b7583 0px;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#6b7583 0px), to(#545C67 100%));
+  background-image: -webkit-linear-gradient(top, #6b7583 0px, #545C67 100%);
+  background-image: -moz-linear-gradient(top, #6b7583 0px, #545C67 100%);
+  background-image: -ms-linear-gradient(top, #6b7583 0px, #545C67 100%);
+  background-image: -o-linear-gradient(top, #6b7583 0px, #545C67 100%);
+  background-image: linear-gradient(top, #6b7583 0px, #545C67 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#6b7583 0px', endColorStr='#545C67 100%');
+}
+/* line 25, ../../sass/themes/theme-style5.scss */
+.topbar > .container .navbar-brand, .topbar .logo {
+  color: #ffffff;
+}
+/* line 29, ../../sass/themes/theme-style5.scss */
+.topbar .topbar-tools > ul > li > a {
+  color: #ffffff;
+}
+/* line 32, ../../sass/themes/theme-style5.scss */
+.topbar .topbar-tools > ul > li.right-menu-toggle > a {
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: #545C67;
+}
+/* line 38, ../../sass/themes/theme-style5.scss */
+.topbar .nav li.dropdown.open > .dropdown-toggle, .topbar .nav li.dropdown.active > .dropdown-toggle, .topbar .nav li.dropdown.open.active > .dropdown-toggle {
+  background: none;
+  color: #ffffff;
+}
+/* line 42, ../../sass/themes/theme-style5.scss */
+.topbar .nav > li:hover > a, .topbar .nav > li:active > a, .topbar .nav > li > a:focus {
+  color: #ffffff;
+  background: none;
+}
+
+/* line 52, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu > li a {
+  border-bottom: none;
+  border-top-color: #f2f2f2;
+  color: #262626;
+}
+/* line 56, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu > li a i {
+  color: #bfbfbf;
+  font-weight: normal;
+}
+/* line 61, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu > li.active > a {
+  background: #f0f0f0 !important;
+  border-top: none !important;
+  color: #2C2F3B;
+}
+/* line 65, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu > li.active > a i {
+  color: #2C2F3B;
+}
+
+/* line 70, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu li > ul.sub-menu > li > a:hover {
+  background: #f0f0f0;
+}
+
+/* line 73, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu li > ul.sub-menu > li.open > a, ul.main-navigation-menu li > ul.sub-menu > li.active > a, ul.main-navigation-menu li > ul.sub-menu > li.open > a:hover, ul.main-navigation-menu li > ul.sub-menu > li.active > a:hover {
+  background: #fafafa;
+}
+
+/* line 76, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu > li.open > a, ul.main-navigation-menu > li > a:hover, ul.main-navigation-menu > li:hover > a {
+  background-color: #fafafa;
+}
+
+/* line 79, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu li.divider {
+  background-color: #f2f2f2 !important;
+}
+
+/* line 83, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu > li.open > a, ul.main-navigation-menu > li > a:hover, ul.main-navigation-menu > li:hover > a {
+  background-color: #fafafa;
+}
+
+/* line 87, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu li.dropdown-header, ul.main-navigation-menu .mega-menu-sub-title {
+  color: #b3b3b3 !important;
+}
+
+/* line 90, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu li.dropdown-header, ul.main-navigation-menu .mega-menu-sub-title {
+  color: #b3b3b3 !important;
+}
+
+/* line 93, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu a {
+  color: #262626 !important;
+}
+/* line 95, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu a:hover {
+  background: none !important;
+}
+
+/* line 99, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li.active a, ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li.active a:hover, ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li.active a:focus {
+  background-color: #f0f0f0 !important;
+  text-decoration: none;
+}
+
+/* line 103, ../../sass/themes/theme-style5.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li a:hover {
+  background-color: #f0f0f0 !important;
+  text-decoration: none;
+}
+
+/* line 110, ../../sass/themes/theme-style5.scss */
+#horizontal-menu .container {
+  background: #ffffff;
+  border-bottom: 1px solid #f2f2f2;
+}
+/* line 117, ../../sass/themes/theme-style5.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li > a {
+  color: #8c8c8c;
+}
+/* line 119, ../../sass/themes/theme-style5.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li > a:hover {
+  color: #262626;
+  background: #f2f2f2;
+}
+/* line 123, ../../sass/themes/theme-style5.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li > a:active, #horizontal-menu .navbar-collapse .navbar-nav > li > a:focus {
+  background: #e6e6e6;
+}
+/* line 128, ../../sass/themes/theme-style5.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li.active > a {
+  color: white;
+  background: #F58A5C;
+}
+/* line 131, ../../sass/themes/theme-style5.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li.active > a:after {
+  border-top-color: #F58A5C;
+}
+
+/* line 141, ../../sass/themes/theme-style5.scss */
+.main-content {
+  background: #DDDDDD;
+}
+
+/* line 144, ../../sass/themes/theme-style5.scss */
+.go-top {
+  color: #8c8c8c;
+}
+
+/* line 147, ../../sass/themes/theme-style5.scss */
+.footer-inner {
+  color: #8c8c8c;
+}
+
+/* line 152, ../../sass/themes/theme-style5.scss */
+#pageslide-left .navigation-toggler .sb-toggle-left {
+  background: url(../../images/dark_dots.png) no-repeat center center;
+}
+/* line 156, ../../sass/themes/theme-style5.scss */
+#pageslide-left .slide-tools {
+  background-color: #f2f2f2;
+}
+/* line 159, ../../sass/themes/theme-style5.scss */
+#pageslide-left .btn {
+  color: rgba(44, 47, 59, 0.3);
+}
+/* line 161, ../../sass/themes/theme-style5.scss */
+#pageslide-left .btn:hover {
+  color: #2C2F3B;
+  background-color: rgba(224, 224, 224, 0.4);
+}
+/* line 166, ../../sass/themes/theme-style5.scss */
+#pageslide-left .user-profile {
+  border-color: #f2f2f2;
+  position: relative;
+}
+/* line 169, ../../sass/themes/theme-style5.scss */
+#pageslide-left .user-profile h5 {
+  color: #b3b3b3;
+}
+/* line 172, ../../sass/themes/theme-style5.scss */
+#pageslide-left .user-profile h4 {
+  color: #2C2F3B;
+}
+
+/* line 177, ../../sass/themes/theme-style5.scss */
+.closedbar {
+  background: #f2f2f2 url(../../images/dark_dots.png) no-repeat center 5px !important;
+}
+/* line 179, ../../sass/themes/theme-style5.scss */
+.closedbar:hover {
+  background-color: #ffffff !important;
+}
+
+/* line 184, ../../sass/themes/theme-style5.scss */
+#pageslide-right .pageslide-title {
+  color: rgba(44, 47, 59, 0.4);
+}
+/* line 188, ../../sass/themes/theme-style5.scss */
+#pageslide-right .notifications a {
+  color: rgba(44, 47, 59, 0.4);
+  background: #f7f7f7;
+}
+/* line 191, ../../sass/themes/theme-style5.scss */
+#pageslide-right .notifications a:hover {
+  background: #f2f2f2;
+}
+/* line 194, ../../sass/themes/theme-style5.scss */
+#pageslide-right .notifications a .time {
+  color: #b3b3b3;
+}
+/* line 200, ../../sass/themes/theme-style5.scss */
+#pageslide-right .right-wrapper .nav-tabs li a {
+  background: #ffffff;
+  border-bottom-color: #e6e6e6;
+}
+/* line 204, ../../sass/themes/theme-style5.scss */
+#pageslide-right .right-wrapper .nav-tabs li.active a {
+  border-right-color: #e6e6e6;
+  border-left-color: #e6e6e6;
+  color: rgba(44, 47, 59, 0.9);
+}
+/* line 210, ../../sass/themes/theme-style5.scss */
+#pageslide-right .media-list .media {
+  border-bottom: 1px solid #e6e6e6;
+  margin: 0;
+}
+/* line 213, ../../sass/themes/theme-style5.scss */
+#pageslide-right .media-list .media .media-heading {
+  color: #374c57 !important;
+}
+/* line 216, ../../sass/themes/theme-style5.scss */
+#pageslide-right .media-list .media a:hover {
+  background: #e6e6e6;
+}
+/* line 219, ../../sass/themes/theme-style5.scss */
+#pageslide-right .media-list .media .status-online {
+  color: #1FBBA6;
+}
+/* line 222, ../../sass/themes/theme-style5.scss */
+#pageslide-right .media-list .media .media-body span {
+  color: #4d4d4d;
+}
+/* line 225, ../../sass/themes/theme-style5.scss */
+#pageslide-right .media-list .media label {
+  color: #666666;
+}
+/* line 229, ../../sass/themes/theme-style5.scss */
+#pageslide-right .sidebar-title {
+  color: rgba(44, 47, 59, 0.4);
+}
+/* line 232, ../../sass/themes/theme-style5.scss */
+#pageslide-right .sidebar-back {
+  color: rgba(44, 47, 59, 0.4);
+}
+/* line 234, ../../sass/themes/theme-style5.scss */
+#pageslide-right .sidebar-back:hover {
+  color: rgba(44, 47, 59, 0.6);
+}
+
+/* line 240, ../../sass/themes/theme-style5.scss */
+#style_selector_container .box-title {
+  color: rgba(44, 47, 59, 0.8) !important;
+}
+/* line 243, ../../sass/themes/theme-style5.scss */
+#style_selector_container .images {
+  border-bottom: 1px solid #f2f2f2;
+}
+/* line 245, ../../sass/themes/theme-style5.scss */
+#style_selector_container .images img.active {
+  border: 2px solid #595959;
+}
+
+/* line 250, ../../sass/themes/theme-style5.scss */
+footer {
+  background-color: #ffffff;
+}

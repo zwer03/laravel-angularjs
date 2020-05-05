@@ -154,10 +154,7 @@ class PatientController extends Controller
 				'users.role',
 				'users.name',
 				'users.last_login',
-			)
-			->leftJoin('people','people.myresultonline_id','=','users.username')
-			->where('users.username','=',$username)
-			->first();
+			)->leftJoin('people','people.myresultonline_id','=','users.username')->where('users.username','=',$username)->first();
 		
 		if($user)
 			$returndata['data'] = $user;

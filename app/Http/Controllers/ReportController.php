@@ -9,11 +9,11 @@ use App\Practitioner;
 class ReportController extends Controller
 {
 
-	public function income(Request $request) {
+	public function pf_summary(Request $request) {
 
 		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		try {
-			
+		// try {
+			Log::info($request);
 			$username = null;
 			$start_date = date('Y-m-d');
 			$end_date = date('Y-m-d');
@@ -32,9 +32,9 @@ class ReportController extends Controller
 				$end_date = date('Y-m-d', strtotime($request->input('end_date')));
 				$filter_string .= "EndDate=".$request->input('end_date').", ";
 			}
-			if ($start_date > $end_date) {
-				throw new \Exception("Invalid date range!", 1);
-			}
+			// if ($start_date > $end_date) {
+			// 	throw new \Exception("Invalid date range!", 1);
+			// }
 			$start_datetime = $start_date.' 00:00:00';
 			$end_datetime = $end_date.' 23:59:59';
 			$practitioner = Practitioner::select(
@@ -86,10 +86,11 @@ class ReportController extends Controller
 				DB::raw($query)
 			);
 			// Log::info(DB::table('medical_packages')->paginate(15));
-		} catch(\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = 'Get Report Income error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-		}
-		return $returndata;
+		// } catch(\Exception $e) {
+		// 	$returndata['success'] = false;
+		// 	$returndata['message'] = 'Get Report Income error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
+		// }
+		Log::info($returndata);
+		return view('reports.pf_summary', ['data'=>$returndata]);
 	}
 }

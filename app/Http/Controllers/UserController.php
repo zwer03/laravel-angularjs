@@ -11,9 +11,13 @@ use App\Helpers\Interfaces\UserInterface;
 use App\User;
 use App\People;
 use DB;
+use App\Traits\Authorizable;
+//Importing laravel-permission models
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 class UserController extends Controller
 {
-
+	use Authorizable;
 	public function audit(UserInterface $iUser, Request $request) {
 		$audit_data = array(
 			"user_id" => ($request->user_id)?$request->user_id:null,
@@ -31,17 +35,13 @@ class UserController extends Controller
 	}
 
 
-	public function passwordReset(UserInterface $iUser, Request $request) {
-
+	public function password_change(UserInterface $iUser, Request $request) {
 		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
 
 		try {
-			
-			
 			$user = User::where('username','=',$request->username)->first();
 
 			if ($user) {
-
 				if (!Hash::check($request->old_password, $user->password)) {
 					throw new \Exception("Invalid password", 1);
 				}elseif($request->old_password == $request->password)
@@ -49,46 +49,83 @@ class UserController extends Controller
 			} else {
 				throw new \Exception("Invalid username", 1);
 			}
-
 			$user->last_change_password = date('Y-m-d H:i:s');
-			$password = Hash::make($request->password);
-			$user->password = $password;
+			// $password = Hash::make($request->password);
+			$user->password = $request->password;
+			$user->default_pf_type = $request->default_pf_type;
 			$user->save();
-
-
-			// $audit_data = array(
-			// 	"user_id" => $request->user()->id,
-			// 	"url" => "user/password_reset",
-			// 	"action" => "user.password_reset",
-			// 	"remarks" => "Password reset successful",
-			// 	"device" => null,
-			// 	"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
-			// 	"device_os" => null,
-			// 	"browser" => null,
-			// 	"browser_version" => null
-			// );
-			// $iUser->audit($audit_data);
+			$audit_data = array(
+				"user_id" => $request->user()->id,
+				"url" => "user/password_reset",
+				"action" => "user.password_reset",
+				"remarks" => "Password reset successful",
+				"device" => null,
+				"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+				"device_os" => null,
+				"browser" => null,
+				"browser_version" => null
+			);
+			$iUser->audit($audit_data);
 		} catch (\Exception $e) {
-
-			// $audit_data = array(
-			// 	"user_id" => $request->user()->id,
-			// 	"url" => "user/password_reset",
-			// 	"action" => "user.password_reset",
-			// 	"remarks" => "Password reset failed",
-			// 	"device" => null,
-			// 	"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
-			// 	"device_os" => null,
-			// 	"browser" => null,
-			// 	"browser_version" => null
-			// );
-			// $iUser->audit($audit_data);
-
+			$audit_data = array(
+				"user_id" => $request->user()->id,
+				"url" => "user/password_reset",
+				"action" => "user.password_reset",
+				"remarks" => "Password reset failed",
+				"device" => null,
+				"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+				"device_os" => null,
+				"browser" => null,
+				"browser_version" => null
+			);
+			$iUser->audit($audit_data);
 			$returndata['success'] = false;
 			$returndata['message'] = $e->getMessage();
 		}
 		
 
 		return $returndata;
+	}
+
+	public function default_pf_type(UserInterface $iUser, Request $request) {
+		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
+
+		try {
+			Log::info($request);
+			$user = User::where('id','=',$request->user()->id)->first();
+			$user->default_pf_type = $request->default_pf_type;
+			$user->save();
+			$audit_data = array(
+				"user_id" => $request->user()->id,
+				"url" => "user/default_pf_type",
+				"action" => "user.default_pf_type",
+				"remarks" => "Default PF type has been set to ".$request->default_pf_type,
+				"device" => null,
+				"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+				"device_os" => null,
+				"browser" => null,
+				"browser_version" => null
+			);
+			$iUser->audit($audit_data);
+			$returndata['message'] = "Default PF type updated";
+		} catch (\Exception $e) {
+			$audit_data = array(
+				"user_id" => $request->user()->id,
+				"url" => "user/default_pf_type",
+				"action" => "user.default_pf_type",
+				"remarks" => "Default PF type update failed",
+				"device" => null,
+				"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+				"device_os" => null,
+				"browser" => null,
+				"browser_version" => null
+			);
+			$iUser->audit($audit_data);
+			$returndata['success'] = false;
+			$returndata['message'] = $e->getMessage();
+		}
+		
+		return redirect('/physician/dashboard')->with('status', $returndata['message']);
 	}
     
     public function logout(UserInterface $iUser, Request $request) {
@@ -139,175 +176,150 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request)
+    public function index()
     {
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		try {
-			$username = null;
-			$name = null;
-			$role = null;
-
-			$filter_string = "";
-
-			if ($request->filled('username')) {
-				$username = $request->input('username');
-				$filter_string .= "username=".$username.", ";
-			}
-			if ($request->filled('name')) {
-				$name = $request->input('name');
-				$filter_string .= "name*=".$name.", ";
-			}
-			if ($request->filled('role')) {
-				$role = $request->input('role');
-				$filter_string .= "role=".$role.", ";
-			}
-			$returndata['data'] = User::where(function($whereClause) use ($username,$name,$role) {
-				$whereClause->where('users.name','<>','Administrator');
-				if ($username) {
-					$whereClause->where('users.username','=',$username);
-				}
-				if ($name) {
-					$whereClause->where('users.name','like',"%".$name."%");
-				}
-				if ($role) {
-					$whereClause->where('users.role','=',$role);
-				}
-			})->paginate(15);
-		} catch(\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = 'User get_users error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-		}
-		return $returndata;
+        $users = User::orderby('created_at', 'asc')->paginate(20); 
+        return view('users.index')->with('users', $users);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+	public function search(Request $request)
+    {
+		if($request->search_keyword)
+			$users = User::where('username','=',$request['search_keyword'])->orWhere('name','like','%'.$request['search_keyword'].'%')->orderby('created_at', 'asc')->paginate(20);
+		else
+			$users = User::orderby('created_at', 'asc')->paginate(20); 
+        return view('users.index')->with('users', $users);
+	}
+	
     public function create()
     {
-        //
+        $roles = Role::get();
+        return view('users.create', ['roles'=>$roles]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        //
+        // $this->validate($request, [
+        //     'name' => 'bail|required|min:2',
+        //     'email' => 'required|email|unique:users',
+        //     'password' => 'required|min:6',
+        //     'roles' => 'required|min:1'
+        // ]);
+
+        // // hash password
+        // $request->merge(['password' => bcrypt($request->get('password'))]);
+
+        // // Create the user
+        // if ( $user = User::create($request->except('roles', 'permissions')) ) {
+        //     $this->syncPermissions($request, $user);
+        //     flash('User has been created.');
+        // } else {
+        //     flash()->error('Unable to create user.');
+        // }
+
+        // return redirect()->route('users.index');
+        //Validate name, email and password fields
+        $this->validate($request, [
+            'name'=>'required|max:120',
+            'username'=>'required|unique:users',
+            'password'=>'required|min:6|confirmed'
+        ]);
+
+        $user = User::create($request->only('username', 'name', 'password')); //Retrieving only the email and password data
+
+        $roles = $request['roles']; //Retrieving the roles field
+    //Checking if a role was selected
+        if (isset($roles)) {
+
+            foreach ($roles as $role) {
+            $role_r = Role::where('id', '=', $role)->firstOrFail();            
+            $user->assignRole($role_r); //Assigning role to user
+            }
+        }        
+    //Redirect to the users.index view and display message
+        return redirect()->route('users.index')
+            ->with('status',
+             'User successfully added.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
+    public function edit($id)
     {
-        //
+        $user = User::findOrFail($id); //Get user with specified id
+        $roles = Role::get(); //Get all roles
+
+        return view('users.edit', compact('user', 'roles')); //pass user and roles data to view
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Request $request)
-    {
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		//Log::info($request->has('User.password'));
-		DB::beginTransaction();
-		try {
-			
-			
-			$user = User::where('username','=',$request['User']['username'])->first();
-			if (!$user)
-				throw new \Exception("Invalid username", 1);
-			
-			if (isset($request['User']['password']) && !empty($request['User']['password'])) {
-				$password = Hash::make($request['User']['password']);
-				$user->password = $password;
-			}
-			$user->name = $request['Person']['firstname'].' '.$request['Person']['middlename'].' '.$request['Person']['lastname'];
-			$user->save();
-
-			$save_people = People::findOrFail($request['Person']['id']);
-			// $save_people->myresultonline_id = $mro_id;
-			$save_people->title_id = null;
-			$save_people->firstname = $request['Person']['firstname'];
-			$save_people->middlename = $request['Person']['middlename'];
-			$save_people->lastname = $request['Person']['lastname'];
-			// $save_people->birthdate = date('Y-m-d', strtotime($post_patient['birthdate']));
-			// $save_people->sex = $post_patient['sex'];
-			// $save_people->marital_status = $post_patient['marital_status'];
-			$save_people->mobile = $request['Person']['mobile'];
-			$save_people->save();
-			$returndata['message'] = 'User information has been updated';
-
-			// $audit_data = array(
-			// 	"user_id" => $request->user()->id,
-			// 	"url" => "user/password_reset",
-			// 	"action" => "user.password_reset",
-			// 	"remarks" => "Password reset successful",
-			// 	"device" => null,
-			// 	"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
-			// 	"device_os" => null,
-			// 	"browser" => null,
-			// 	"browser_version" => null
-			// );
-			// $iUser->audit($audit_data);
-			DB::commit();
-		} catch (\Exception $e) {
-
-			// $audit_data = array(
-			// 	"user_id" => $request->user()->id,
-			// 	"url" => "user/password_reset",
-			// 	"action" => "user.password_reset",
-			// 	"remarks" => "Password reset failed",
-			// 	"device" => null,
-			// 	"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
-			// 	"device_os" => null,
-			// 	"browser" => null,
-			// 	"browser_version" => null
-			// );
-			// $iUser->audit($audit_data);
-			DB::rollBack();
-			$returndata['success'] = false;
-			$returndata['message'] = $e->getMessage();
-		}
-		
-
-		return $returndata;
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
-        //
+        $user = User::findOrFail($id); //Get role specified by id
+
+    //Validate name, email and password fields    
+        $this->validate($request, [
+            'name'=>'required|max:120',
+            #'username'=>'required|unique:users,'.$id,
+            'password'=>'required|min:6|confirmed'
+		]);
+		if(auth()->user()->username == 'admin' && $request->username == 'admin')
+			$input = $request->only(['name', 'username', 'password']); //Retrieve the name, email and password fields
+		elseif($request->username != 'admin')
+			$input = $request->only(['name', 'username', 'password']); //Retrieve the name, email and password fields
+		else
+			$input = $request->only(['name', 'username']); //Retrieve the name, email and password fields
+
+        $roles = $request['roles']; //Retrieve all roles
+        $user->fill($input)->save();
+		if($roles){
+			if (isset($roles)) {        
+				$user->roles()->sync($roles);  //If one or more role is selected associate user to roles          
+			}        
+			else {
+				$user->roles()->detach(); //If no role is selected remove exisiting role associated to a user
+			}
+		}
+        return redirect()->route('users.index')
+            ->with('status',
+             'User successfully edited.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-        //
-	}
+        if ( auth()->user()->id == $id ) {
+            $message = 'Deletion of currently logged in user is not allowed :(';
+            return redirect()->back();
+        }
+
+        if( User::findOrFail($id)->delete() ) {
+            $message = 'User has been deleted';
+        } else {
+            $message = 'User not deleted';
+        }
+
+        return redirect()->back()->with('status',
+		$message);
+    }
+
+    private function syncPermissions(Request $request, $user)
+    {
+        // Get the submitted roles
+        $roles = $request->get('roles', []);
+        $permissions = $request->get('permissions', []);
+
+        // Get the roles
+        $roles = Role::find($roles);
+
+        // check for current role changes
+        if( ! $user->hasAllRoles( $roles ) ) {
+            // reset all direct permissions for user
+            $user->permissions()->sync([]);
+        } else {
+            // handle permissions
+            $user->syncPermissions($permissions);
+        }
+
+        $user->syncRoles($roles);
+        return $user;
+    }
 	
 	public function get_person(Request $request) {
 

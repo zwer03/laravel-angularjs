@@ -1,0 +1,114 @@
+html, body {height: 100%}
+.container{min-height: 100%;}
+.lis-container {
+	width: 100%;
+	background-color: #fff;
+	margin: 0 auto;
+	padding: 10px 0px;
+	display: flex;
+	justify-content: center;
+	font-family: Helvetica Neue, Segoe UI, Helvetica, Arial, sans-serif !important;
+	min-width: 320px;
+    min-height: 100%;
+    max-width: 1380px;
+}
+.no-padding {
+	padding: 0;
+}
+.no-margin {
+	margin: 0;
+}
+.lis-center-container {
+	width: 100%;
+	float: left;
+    position: relative;
+    padding: 20px 10px;
+}
+
+.lis-login-container {
+	border-radius: 5px;
+	background-color: #3695eb;
+	color: #ffffff !important;
+	border-width: 0px;
+    border-style: initial;
+    border-color: initial;
+    border-image: initial;
+}
+.lis-login-container > div, p {
+	font-family: Helvetica Neue, Segoe UI, Helvetica, Arial, sans-serif !important;
+	color: #fff;
+}
+
+.login-title {
+	font-size: 22px;
+}
+.login-message {
+	background: none;
+}
+.login-form table tr td {
+	border: none;
+	color: #3695eb !important;
+}
+.login-form-box {
+	/*border: 1px solid rgb(237, 237, 237);*/
+	border-radius: 3px;
+	padding: 0 20px;
+	background-color: #fff;
+	color: #3695eb !important;
+}
+
+
+.OTP-form  {
+	/*border: 1px solid rgb(237, 237, 237);*/
+	border-radius: 3px;
+	padding: 0 20px;
+	background-color: #fff;
+	color: #3695eb !important;
+	font-weight: bold;
+}
+
+.forgot-pw-form  {
+	/*border: 1px solid rgb(237, 237, 237);*/
+	border-radius: 3px;
+	padding: 0 20px;
+	background-color: #fff;
+	color: #3695eb !important;
+	font-weight: bold;
+}
+
+
+
+/* enable absolute positioning */
+.inner-addon { 
+    position: relative; 
+}
+
+/* style icon */
+.inner-addon .glyphicon {
+  position: absolute;
+  padding: 10px;
+  pointer-events: none;
+  color: #3695eb !important;
+}
+
+/* align icon */
+.left-addon .glyphicon  { left:  0px;}
+.right-addon .glyphicon { right: 0px;}
+
+/* add padding  */
+.left-addon input  { padding-left:  30px; }
+.right-addon input { padding-right: 30px; }
+
+.has-feedback label~.form-control-feedback {
+    top: 23px;
+}
+
+.patient_orders_tbl thead tr th {
+	background-color: #3695eb;
+	color: #ffffff;
+}
+
+.patient_orders_tbl tr {
+	cursor: pointer;
+}
+ 

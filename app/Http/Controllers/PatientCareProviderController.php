@@ -7,30 +7,22 @@ use Illuminate\Support\Facades\Log;
 use App\PatientCareProvider;
 class PatientCareProviderController extends Controller
 {
-	public function toggle_show_pf(Request $request) {
+	public function toggle_display_pf(Request $request, $pcp_id, $show_pf) {
 
     	$returndata = array('success'=>true,'message'=>null,'data'=>null);
-
-		if ($request->user()->tokenCan('tpi')) {
-			try {
-				Log::info('Start updating pcp show pf');
-				Log::info($request);
-					$update_pcp = PatientCareProvider::findOrFail($request->input('pcp_id'));
-					$update_pcp->show_pf = $request->input('pcp_show_pf');
-					if($update_pcp->save())
-						$returndata['message'] = 'PatientCareProvider has been updated.';
-				Log::info('End updating pcp show pf');
-			} catch(\Exception $e) {
-				$returndata['success'] = false;
-				$returndata['message'] = 'Physician update_pcp error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-			}
-		} else {
-
+		try {
+			Log::info('Start updating pcp show pf');
+			Log::info($pcp_id);
+			Log::info($show_pf);
+			$update_pcp = PatientCareProvider::findOrFail($pcp_id);
+			$update_pcp->show_pf = $show_pf;
+			if($update_pcp->save())
+				$returndata['message'] = 'PatientCareProvider has been updated.';
+			Log::info('End updating pcp show pf');
+		} catch(\Exception $e) {
 			$returndata['success'] = false;
-			$returndata['message'] = 'Undefined user scope!';
+			$returndata['message'] = 'Physician update_pcp error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
 		}
-
-		// $returndata['data'] = $request->user();
 
 		return $returndata;
 	}

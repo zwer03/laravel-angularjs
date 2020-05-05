@@ -2,93 +2,112 @@
 
 namespace App\Http\Controllers;
 
+use App\ConsultantType;
+use App\Traits\Authorizable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-
-use App\ConsultantType;
-use Illuminate\Support\Facades\DB;
 class ConsultantTypeController extends Controller
 {
+    use Authorizable;
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index() {
+        $consultant_types = ConsultantType::orderby('created_at', 'desc')->paginate(20); //show only 5 items at a time in descending order
 
-	public function index(Request $request) {
+        return view('consultant_types.index', compact('consultant_types'));
+    }
 
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		try {
-			$returndata['data'] = DB::table('consultant_types')->orderBy('id')->paginate(20);
-			// Log::info(DB::table('medical_packages')->paginate(15));
-		} catch(\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = 'Get consultant_types error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-		}
-		return $returndata;
-	}
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create() {
+        return view('consultant_types.create');
+    }
 
-	public function list() {
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request) { 
+        // Log::info($request);
+    //Validating title and body field
+        $this->validate($request, [
+            'external_id'=>'required',
+            'name'=>'required',
+        ]);
 
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		try {
-			
-			$returndata['data'] = DB::table('consultant_types')->pluck('id', 'name');
-		} catch(\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = 'Get ConsultantType error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-		}
-		return $returndata;
-	}
+        $consultant_type = New ConsultantType;
+        $consultant_type->external_id = $request->external_id;
+        $consultant_type->name = $request->name;
+        $consultant_type->default_pf_amount = $request->default_pf_amount;
+        $consultant_type->save();
+    //Display a successful message upon save
+        return redirect()->route('consultant_types.index')
+            ->with('status', $consultant_type->name.' created');
+    }
 
-	public function add(Request $request)
-    {
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		//Log::info($request->has('User.password'));
-		try {
-			Log::info('Start adding ConsultantType');
-			if (request()->isMethod('post')) {
-				Log::info($request);
-				$existing_consultant_type = ConsultantType::where('external_id','=',$request['ConsultantType']['external_id'])->first();
-				if(!$existing_consultant_type){
-					$save_consultant_type = new ConsultantType;
-					$save_consultant_type->external_id = $request['ConsultantType']['external_id'];
-					$save_consultant_type->name = $request['ConsultantType']['name'];
-					$save_consultant_type->default_pf_amount = $request['ConsultantType']['default_pf_amount'];
-					if($save_consultant_type->save()){
-						$returndata['message'] = 'ConsultantType has been saved.';
-					}
-				}else
-					$returndata = array('success'=>false, 'message'=>'ConsultantType already exists.');
-			}
-			Log::info('End adding ConsultantType');
-		} catch (\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = $e->getMessage();
-		}
-		return $returndata;
-	}
-	
-	public function edit(Request $request)
-    {
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		//Log::info($request->has('User.password'));
-		try {
-			Log::info('Start editing ConsultantType');
-			if (request()->isMethod('post')) {
-				Log::info($request);
-				$save_consultant_types = ConsultantType::findOrFail($request['ConsultantType']['id']);
-				$save_consultant_types->name = $request['ConsultantType']['name'];
-				// $save_consultant_types->description = $request['ConsultantType']['description'];
-				$save_consultant_types->default_pf_amount = $request['ConsultantType']['default_pf_amount'];
-				if ($save_consultant_types->save())
-					$returndata['message'] = 'ConsultantType has been saved.';
-			}else{
-				$consultant_types = DB::table('consultant_types')->where('id','=',$request['id'])->first();
-				if (!$consultant_types)
-					throw new \Exception("Invalid ConsultantType", 1);
-				$returndata['data'] = $consultant_types;
-			}
-			Log::info('End editing ConsultantType');
-		} catch (\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = $e->getMessage();
-		}
-		return $returndata;
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show(ConsultantType $consultant_type) {
+        return view ('consultant_types.show', compact('consultant_type'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(ConsultantType $consultant_type) {
+        return view('consultant_types.edit', compact('consultant_type'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, ConsultantType $consultant_type) {
+        $this->validate($request, [
+            'external_id'=>'required',
+            'name'=>'required',
+        ]);
+
+        $consultant_type->external_id = $request->input('external_id');
+        $consultant_type->name = $request->input('name');
+        $consultant_type->default_pf_amount = $request->input('default_pf_amount');
+        $consultant_type->save();
+
+        return redirect()->route('consultant_types.index', 
+            $consultant_type->id)->with('status', 
+            $consultant_type->name.' updated');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(ConsultantType $consultant_type) {
+        $consultant_type->delete();
+
+        return redirect()->route('consultant_types.index')
+            ->with('status',
+            $consultant_type->name.' successfully deleted');
+
     }
 }

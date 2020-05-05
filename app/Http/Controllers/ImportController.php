@@ -39,11 +39,12 @@ class ImportController extends Controller
 
 			$user_id = $request->user()->id;
 
-			$new_physician_user_id = null;
+			// $new_physician_user_id = null;
 			$new_user_id = null;
 			$hmo_id = null;
 			$medical_package_id = null;
 			$non_pay = false;
+			$user = null;
 			DB::beginTransaction();
 			Log::info($request);
 			try {
@@ -51,7 +52,7 @@ class ImportController extends Controller
 				foreach ($transactions as $tx) {
 					$post_visit = $tx['PatientVisit'];
 					$post_patient = $tx['Patient'];
-					if($post_visit['created_at'] >= '2019-12-16 00:00:00'){ // Define where to start getting transaction, based on date of admission
+					if($post_visit['created_at'] >= '2020-02-18 10:00:00'){
 						if($post_visit['hospitalization_plan'] == 'IHMO')
 							$non_pay = true;
 						if($post_visit['status'] == 'A' || $post_visit['status'] == 'F' || $post_visit['status'] == 'U' || $post_visit['status'] == 'X'){
@@ -174,6 +175,8 @@ class ImportController extends Controller
 								$save_patient_visit->membership_id = $post_visit['membership_id'];
 								$save_patient_visit->bed_room = $post_visit['bed_room'];
 								$save_patient_visit->final_diagnosis = $post_visit['final_diagnosis'];
+								$save_patient_visit->total_debit = $post_visit['total_debit'];
+								$save_patient_visit->room_price = $post_visit['room_price'];
 								$save_patient_visit->status = $post_visit['status'];
 								$save_patient_visit->hospitalization_plan = $post_visit['hospitalization_plan'];
 								$save_patient_visit->mgh_datetime = $post_visit['mgh_datetime']; // Can be remove
@@ -328,7 +331,7 @@ class ImportController extends Controller
 												$save_physician_user->password = $physician_password;
 												$save_physician_user->role = 'ROLE_PHYSICIAN';
 												$save_physician_user->save();
-												$new_physician_user_id = $save_physician_user->id;
+												// $new_physician_user_id = $save_physician_user->id;
 
 												$save_physician_people = new People;
 												$save_physician_people->myresultonline_id = $physician_username;
@@ -422,6 +425,7 @@ class ImportController extends Controller
 												}
 												
 											}
+											
 											if(!$this->check_mobile($posted_physician['mobile'])){
 												$audit_data = array(
 													"user_id" => $request->user()->id,
@@ -449,13 +453,14 @@ class ImportController extends Controller
 											// }
 											
 											if($config->value){
+												Log::info($config);
 												$sms = SmsTemplate::select('subject','content')
 														->where('id',$config->value)
 														->first();
 												Log::info('SMS TEMPLATE');
 												Log::info($sms);
 												$onlinepf_link_domain_name = Configuration::where('id','domain_name')->first();
-												$onlinepf_link = $onlinepf_link_domain_name->value.'/physicians/professional_fee/'.$post_visit['id'].'/'.$post_patient['id'].'/'.$posted_physician['id'];
+												$onlinepf_link = $onlinepf_link_domain_name->value.'/physician/view_transaction/'.$post_visit['id'].'/'.$post_patient['id'].'/'.$posted_physician['id'];
 												$patient_name = $post_patient['last_name'].', '.$post_patient['first_name'].' '.$post_patient['middle_name'];
 												$sms->content = str_replace('$onlinepf_link', $onlinepf_link, $sms->content);
 												$sms->content = str_replace('$patient_name', $patient_name, $sms->content);
@@ -495,8 +500,9 @@ class ImportController extends Controller
 										$iUser->audit($audit_data);
 									}
 								}else{
-								
+									
 									$change_hosp_plan = false;
+									$has_pdrem = false;
 									if($existing_patient_visit->hospitalization_plan != $post_visit['hospitalization_plan']){ //AUDIT LOG HERE
 										$change_hosp_plan = true;
 										Log::info('hosp plan was changed');
@@ -513,13 +519,19 @@ class ImportController extends Controller
 										);
 										$iUser->audit($audit_data);
 									}
+									if(isset($post_visit['pdremarks']) && !empty($post_visit['pdremarks']) && !$existing_patient_visit->sms_pdrem_status)
+										$has_pdrem = true;
 									$existing_patient_visit->chief_complaint = $post_visit['chief_complaint'];
 									$existing_patient_visit->icd10 = $post_visit['icd10'];
 									$existing_patient_visit->membership_id = $post_visit['membership_id'];
 									$existing_patient_visit->bed_room = $post_visit['bed_room'];
 									$existing_patient_visit->final_diagnosis = $post_visit['final_diagnosis'];
+									$existing_patient_visit->total_debit = $post_visit['total_debit'];
+									$existing_patient_visit->room_price = $post_visit['room_price'];
 									$existing_patient_visit->status = $post_visit['status'];
 									$existing_patient_visit->hospitalization_plan = $post_visit['hospitalization_plan'];
+									$existing_patient_visit->pdrem = $post_visit['pdremarks'];
+									$existing_patient_visit->sms_pdrem_status = ($has_pdrem?1:0);
 									$existing_patient_visit->mgh_datetime = ($post_visit['untag_mgh_datetime']?null:$post_visit['mgh_datetime']);
 									$existing_patient_visit->untag_mgh_datetime = $post_visit['untag_mgh_datetime'];
 									$existing_patient_visit->cancel_datetime = $post_visit['cancel_datetime'];
@@ -640,6 +652,9 @@ class ImportController extends Controller
 													// Update Practitioer or Physician Basic Details
 													$practitioner = Practitioner::findOrFail($existing_physician->id);
 													$save_physician_people = People::findOrFail($practitioner->person_id);
+													$user = User::where('username','=',$save_physician_people->myresultonline_id)->first();
+													Log::info('Existing Practitioner User');
+													Log::info($user);
 													$save_physician_people->firstname = $posted_physician['first_name'];
 													$save_physician_people->middlename = $posted_physician['middle_name'];
 													$save_physician_people->lastname = $posted_physician['last_name'];
@@ -674,7 +689,10 @@ class ImportController extends Controller
 													$save_physician_user->password = $physician_password;
 													$save_physician_user->role = 'ROLE_PHYSICIAN';
 													$save_physician_user->save();
-													$new_physician_user_id = $save_physician_user->id;
+													// $new_physician_user_id = $save_physician_user->id;
+													Log::info('New Practitioner User');
+													Log::info($user);
+													$user = $save_physician_user;
 
 													$save_physician_people = new People;
 													$save_physician_people->myresultonline_id = $physician_username;
@@ -855,7 +873,16 @@ class ImportController extends Controller
 														if($existing_pcp->pf_amount == 0  && !$existing_pcpt->status){ // ON QUEUE SET DEFAULT PF AND EXP. DATETIME
 															Log::info('Condition: PF amount is eq to 0 and PCPT status is not 1.');
 															$config = Configuration::where('id','sms_mgh_template')->first();
-															if($hmo_default_pf){
+
+															$start = strtotime($post_visit['created_at']);
+															$end = strtotime($post_visit['mgh_datetime']);
+															$days_between = ceil(abs($end - $start) / 86400);
+															$default_pf_type_config = Configuration::where('id','default_pf_type')->first();
+															if(!empty($post_visit['room_price']) && $post_visit['room_price'] > 0 && $days_between > 0 && $user->default_pf_type == 1000 && $default_pf_type_config->value){ // TODO: Add checking user setting in default PF type
+																
+																$save_patient_care_provider_tx->pf_amount = $post_visit['room_price'] * $days_between;
+															}
+															elseif($hmo_default_pf){
 																$save_patient_care_provider_tx->status = 0;
 																$save_patient_care_provider_tx->pf_amount = $hmo_default_pf; // DEFAULT PF PER HMO
 															}elseif($consultant_type_pf)
@@ -906,27 +933,31 @@ class ImportController extends Controller
 													}
 													
 												}
-												
+												if($has_pdrem){
+													unset($config);
+													$config = Configuration::where('id','sms_possible_discharge')->first();
+												}
 												if($change_hosp_plan){
 													unset($config);
 													$config = Configuration::where('id','sms_change_hosp_plan')->first();
 												}
 
 												if(isset($config->value)){
+													Log:info($config);
 													$sms = SmsTemplate::select('subject','content')
 															->where('id',$config->value)
 															->first();
 													Log::info('SMS TEMPLATE');
 													Log::info($sms);
 													$onlinepf_link_domain_name = Configuration::where('id','domain_name')->first();
-													$onlinepf_link = $onlinepf_link_domain_name->value.'/physicians/professional_fee/'.$post_visit['id'].'/'.$post_patient['id'].'/'.$posted_physician['id'];
+													$onlinepf_link = $onlinepf_link_domain_name->value.'/physician/view_transaction/'.$post_visit['id'].'/'.$post_patient['id'].'/'.$posted_physician['id'];
 													$patient_name = $post_patient['last_name'].', '.$post_patient['first_name'].' '.$post_patient['middle_name'];
 													$sms->content = str_replace('$onlinepf_link', $onlinepf_link, $sms->content);
 													$sms->content = str_replace('$patient_name', $patient_name, $sms->content);
 													$returndata['message'] = $sms->content;
 												}
 
-												$returndata['mobile'] = $posted_physician['mobile'];
+												$returndata['mobile'] = (!empty($returndata['message']?$posted_physician['mobile']:null));
 											}
 										}
 									}
@@ -956,7 +987,7 @@ class ImportController extends Controller
 			$returndata['message'] = 'HIS post failed! Stacktrace: Invalid token scope!';
 		}
 
-		return Response::json($returndata);
+		return Response::json($returndata); // This is the output data.
 	}
 
 	public function check_mobile($contact){

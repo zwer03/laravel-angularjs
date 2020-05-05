@@ -20,18 +20,16 @@ class UsersTableSeeder extends Seeder
             'name' => 'Administrator',
             'email' => 'admin@easy.com.ph',
             'username' => 'admin',
-            'password' => $password,
-            'role' => 'ROLE_ADMIN'
+            'password' => $password
         ]);
 
-        // $password = Hash::make('infotech');
+        $password = Hash::make('infotech');
 
-        // User::create([
-        //     'name' => 'Information Technology',
-        //     'email' => 'infotech@easy.com.ph',
-        //     'username' => 'infotech',
-        //     'password' => $password,
-        //     'role' => 'ROLE_ADMIN'
-        // ]);
+        User::create([
+            'name' => 'Information Technology',
+            'email' => 'infotech@easy.com.ph',
+            'username' => 'infotech',
+            'password' => $password
+        ]);
     }
 }

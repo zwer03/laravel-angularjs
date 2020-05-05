@@ -2,52 +2,113 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-
 use App\SmsTemplate;
-use Illuminate\Support\Facades\DB;
+use App\Traits\Authorizable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 class SmsTemplateController extends Controller
 {
+    use Authorizable;
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index() {
+        $sms_templates = SmsTemplate::orderby('created_at', 'desc')->paginate(20); //show only 5 items at a time in descending order
 
-	public function index(Request $request) {
+        return view('sms_templates.index', compact('sms_templates'));
+    }
 
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		try {
-			$returndata['data'] = DB::table('sms_templates')->orderBy('id')->paginate(15);
-			// Log::info(DB::table('sms_templates')->paginate(15));
-		} catch(\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = 'Get sms_templates error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-		}
-		return $returndata;
-	}
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create() {
+        return view('sms_templates.create');
+    }
 
-	public function edit(Request $request)
-    {
-		$returndata = array('success'=>true, 'message'=>null, 'data'=>null);
-		//Log::info($request->has('User.password'));
-		try {
-			Log::info('Start editing sms template');
-			if (request()->isMethod('post')) {
-				Log::info($request);
-				$save_sms_templates = SmsTemplate::findOrFail($request['SmsTemplate']['id']);
-				$save_sms_templates->content = $request['SmsTemplate']['content'];
-				$save_sms_templates->type = $request['SmsTemplate']['type'];
-				if ($save_sms_templates->save())
-					$returndata['message'] = 'SmsTemplate has been saved.';
-			}else{
-				$sms_template = DB::table('sms_templates')->where('id','=',$request['id'])->first();
-				if (!$sms_template)
-					throw new \Exception("Invalid SmsTemplate", 1);
-				$returndata['data'] = $sms_template;
-			}
-			Log::info('End editing sms template');
-		} catch (\Exception $e) {
-			$returndata['success'] = false;
-			$returndata['message'] = $e->getMessage();
-		}
-		return $returndata;
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request) { 
+        // Log::info($request);
+    //Validating title and body field
+        $this->validate($request, [
+            'subject'=>'required',
+            'content'=>'required',
+        ]);
+
+        $sms_template = New SmsTemplate;
+        $sms_template->id = $request->id;
+        $sms_template->subject = $request->subject;
+        $sms_template->description = $request->description;
+        $sms_template->content = $request->content;
+        $sms_template->save();
+    //Display a successful message upon save
+        return redirect()->route('sms_templates.index')
+            ->with('status', $sms_template->subject.' created');
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show(SmsTemplate $sms_template) {
+        return view ('sms_templates.show', compact('sms_template'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(SmsTemplate $sms_template) {
+        return view('sms_templates.edit', compact('sms_template'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, SmsTemplate $sms_template) {
+        $this->validate($request, [
+            'subject'=>'required',
+            'content'=>'required',
+        ]);
+
+        $sms_template->subject = $request->input('subject');
+        $sms_template->description = $request->input('description');
+        $sms_template->content = $request->input('content');
+        $sms_template->save();
+
+        return redirect()->route('sms_templates.index', 
+            $sms_template->id)->with('status', 
+            $sms_template->subject.' updated');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(SmsTemplate $sms_template) {
+        $sms_template->delete();
+
+        return redirect()->route('sms_templates.index')
+            ->with('status',
+            $sms_template->name.' successfully deleted');
+
     }
 }

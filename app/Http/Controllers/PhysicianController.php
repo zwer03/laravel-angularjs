@@ -19,27 +19,22 @@ use App\SmsTemplate;
 use DB;
 class PhysicianController extends Controller
 {
+	public function view_transaction($external_id, $patient_id, $practitioner_id) {
+		$data['external_id'] = $external_id;
+		$data['patient_id'] = $patient_id;
+		$data['practitioner_id'] = $practitioner_id;
+		return view('physician.view_transaction', ['data'=>$data]);
+	}
 
-    public function get_patient_visit(Request $request) {
+    public function get_transaction_details(UserInterface $iUser, Request $request, $external_id, $patient_id, $practitioner_id) {
 
     	$returndata = array('success'=>true,'message'=>null,'data'=>null);
 
-		if ($request->user()->tokenCan('physician')) {
+		// if ($request->user()->tokenCan('physician')) {
 
 			Log::info('Start getting patient visit');
-			Log::info($request);
+			Log::info('External id: '.$external_id.', Patient ID: '.$patient_id.', Practitioner ID: '.$practitioner_id);
 			try {
-				if(!$request->input('practitioner_id')){
-					$practitioner = Practitioner::select(
-						'practitioners.external_id',
-						'people.*'
-					)
-					->Join('people','practitioners.person_id','=','people.id')
-					->where('people.myresultonline_id','=',$request->user()->username)
-					->first();
-					$practitioner_id = $practitioner['external_id'];
-				}else
-					$practitioner_id = $request->input('practitioner_id');
 				$patient_visit = PatientVisit::select(
 					'patient_visits.id',
 					'patient_visits.external_visit_number as visit_number',
@@ -52,6 +47,7 @@ class PhysicianController extends Controller
 					'patient_visits.status as patient_visit_status',
 					'patient_visits.hospitalization_plan',
 					'patient_visits.membership_id',
+					'patient_visits.total_debit',
 					'patients.internal_id as patient_id',
 					'people.lastname as px_last_name',
 					'people.firstname as px_first_name',
@@ -76,10 +72,9 @@ class PhysicianController extends Controller
 				->leftJoin('consultant_types','consultant_types.id','=','patient_care_providers.consultant_type_id')
 				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
-				->where('patient_visits.external_id','=',$request->input('visit_number'))
+				->where('patient_visits.external_id','=',$external_id)
 				->where('practitioners.external_id','=',$practitioner_id)
-				->where('patients.internal_id','=',$request->input('patient_id'))
-				->orderBy('patient_visits.created_at', 'desc')
+				->where('patients.internal_id','=',$patient_id)
 				->first();
 				$other_physician = PatientVisit::select(
 					'patient_visits.id',
@@ -131,16 +126,115 @@ class PhysicianController extends Controller
 				$formatted_patient_visit['OtherPhysician'] = $other_physician;
 				$returndata['data'] = $formatted_patient_visit;
 				// Log::info($formatted_patient_visit);
+				$audit_data = array(
+					"user_id" => $request->user()->id,
+					"url" => "physician/get_transaction_details",
+					"action" => "physician.get_transaction_details",
+					"remarks" => 'External id: '.$external_id.', Patient ID: '.$patient_id.', Practitioner ID: '.$practitioner_id,
+					"device" => null,
+					"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+					"device_os" => null,
+					"browser" => null,
+					"browser_version" => null
+				);
+				$iUser->audit($audit_data);
 				Log::info('End getting patient visit');
 			} catch(\Exception $e) {
 				$returndata['success'] = false;
 				$returndata['message'] = 'Physician get_patients error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
 			}
-		} else {
+		// } else {
 
-			$returndata['success'] = false;
-			$returndata['message'] = 'Undefined user scope!';
-		}
+		// 	$returndata['success'] = false;
+		// 	$returndata['message'] = 'Undefined user scope!';
+		// }
+
+		return $returndata;
+	}
+
+	public function get_patients(Request $request) {
+
+    	$returndata = array('success'=>true,'message'=>null,'data'=>null);
+
+		// if ($request->user()->tokenCan('physician')) {
+			try {
+				Log::info('Start getting practitioner patients');
+				Log::info('User currently logged in '.$request->user()->username);
+				$lastname = '';
+				$firstname = '';
+				$practitioner = Practitioner::select(
+					'practitioners.external_id',
+					'people.*'
+				)
+				->Join('people','practitioners.person_id','=','people.id')
+				->where('people.myresultonline_id','=',$request->user()->username)
+				// ->where('people.myresultonline_id','=','088838')
+				->first();
+				$pratitioner_external_id = $practitioner['external_id'];
+				$filter_status = $request->input('filter_status');
+				$patient_name = $request->input('patient_name');
+				
+				if($patient_name && strpos($patient_name, ',')){
+					$name = explode(',',$patient_name);
+					$lastname = $name[0];
+					$firstname = $name[1];
+				}
+				
+				$patients = PatientVisit::select(
+					'patient_visits.external_id',
+					'patient_visits.external_visit_number as visit_number',
+					'patient_visits.created_at as admission_datetime',
+					'patient_visits.mgh_datetime',
+					'patient_visits.untag_mgh_datetime',
+					'patient_visits.hospitalization_plan',
+					'patient_visits.chief_complaint as chief_complaint',
+					'patient_visits.status as patient_visit_status',
+					'patients.internal_id as patient_id',
+					'people.lastname as px_last_name',
+					'people.firstname as px_first_name',
+					'people.middlename as px_middle_name',
+					'people.sex as px_sex',
+					'people.birthdate as px_birthdate',
+					'people.marital_status as px_marital_status',
+					'patient_care_providers.pf_amount',
+					'patient_care_providers.phic_amount',
+					'patient_care_providers.discount',
+					'patient_care_providers.instrument_fee',
+					'practitioners.external_id as practitioner_id',
+					'patient_care_provider_transactions.status'
+				)
+				->leftJoin('patients','patient_visits.patient_id','=','patients.id')
+				->leftJoin('people','patients.person_id','=','people.id')
+				->leftJoin('patient_care_providers','patient_care_providers.patient_visit_id','=','patient_visits.id')
+				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
+				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
+				// ->where('practitioners.external_id','=',$pratitioner_external_id)
+				->where('patient_visits.status','<>','X')
+				->where('patient_care_provider_transactions.status','=',$filter_status)
+				->where(function($whereClause) use ($lastname,$firstname, $patient_name, $pratitioner_external_id) {
+					if($patient_name){
+						$whereClause->where('people.lastname','like','%'.($lastname?$lastname:$patient_name).'%')->orWhere('people.firstname','like','%'.($firstname?$firstname:$patient_name).'%');
+					}
+					if($pratitioner_external_id){
+						$whereClause->where('practitioners.external_id','=',$pratitioner_external_id);
+					}
+				})
+				->orderBy('patient_visits.created_at', 'desc')
+				->paginate(20);
+				$get_dashboard_data = $this->get_dashboard_data($pratitioner_external_id);
+				$returndata['onqueue'] = $get_dashboard_data['onqueue'];
+				$returndata['completed'] = $get_dashboard_data['completed'];
+				$returndata['data'] = $patients;
+				Log::info('End getting practitioner patients');
+			} catch(\Exception $e) {
+				$returndata['success'] = false;
+				$returndata['message'] = 'Physician get_patients error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
+			}
+		// } else {
+
+		// 	$returndata['success'] = false;
+		// 	$returndata['message'] = 'Undefined user scope!';
+		// }
 
 		// $returndata['data'] = $request->user();
 
@@ -200,124 +294,51 @@ class PhysicianController extends Controller
 		return $returndata;
 	}
 
-	public function get_practitioner_px(Request $request) {
-
-    	$returndata = array('success'=>true,'message'=>null,'data'=>null);
-
-		if ($request->user()->tokenCan('physician')) {
-			try {
-				Log::info('Start getting practitioner patients');
-				Log::info('User currently logged in '.$request->user()->username);
-				$lastname = '';
-				$firstname = '';
-				$practitioner = Practitioner::select(
-					'practitioners.external_id',
-					'people.*'
-				)
-				->Join('people','practitioners.person_id','=','people.id')
-				->where('people.myresultonline_id','=',$request->user()->username)
-				->first();
-				$pratitioner_external_id = $practitioner['external_id'];
-				$filter_status = $request->input('filter_status');
-				$patient_name = $request->input('patient_name');
-				
-				if($patient_name && strpos($patient_name, ',')){
-					$name = explode(',',$patient_name);
-					$lastname = $name[0];
-					$firstname = $name[1];
-				}
-				
-				$patients = PatientVisit::select(
-					'patient_visits.external_id',
-					'patient_visits.external_visit_number as visit_number',
-					'patient_visits.created_at as admission_datetime',
-					'patient_visits.mgh_datetime',
-					'patient_visits.untag_mgh_datetime',
-					'patient_visits.hospitalization_plan',
-					'patient_visits.chief_complaint as chief_complaint',
-					'patient_visits.status as patient_visit_status',
-					'patients.internal_id as patient_id',
-					'people.lastname as px_last_name',
-					'people.firstname as px_first_name',
-					'people.middlename as px_middle_name',
-					'people.sex as px_sex',
-					'people.birthdate as px_birthdate',
-					'people.marital_status as px_marital_status',
-					'patient_care_providers.pf_amount',
-					'patient_care_providers.phic_amount',
-					'patient_care_providers.discount',
-					'patient_care_providers.instrument_fee',
-					'practitioners.external_id as practitioner_id',
-					'patient_care_provider_transactions.status'
-				)
-				->leftJoin('patients','patient_visits.patient_id','=','patients.id')
-				->leftJoin('people','patients.person_id','=','people.id')
-				->leftJoin('patient_care_providers','patient_care_providers.patient_visit_id','=','patient_visits.id')
-				->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
-				->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
-				->where('practitioners.external_id','=',$pratitioner_external_id)
-				->where('patient_visits.status','<>','X')
-				->where('patient_care_provider_transactions.status','=',$filter_status)
-				->where(function($whereClause) use ($lastname,$firstname, $patient_name) {
-					if($patient_name){
-						$whereClause->where('people.lastname','like','%'.($lastname?$lastname:$patient_name).'%')->orWhere('people.firstname','like','%'.($firstname?$firstname:$patient_name).'%');
-					}
-				})
-				->orderBy('patient_visits.created_at', 'desc')
-				->paginate(20);
-				$get_dashboard_data = $this->get_dashboard_data($pratitioner_external_id);
-				$returndata['onqueue'] = $get_dashboard_data['onqueue'];
-				$returndata['completed'] = $get_dashboard_data['completed'];
-				$returndata['data'] = $patients;
-				Log::info('End getting practitioner patients');
-			} catch(\Exception $e) {
-				$returndata['success'] = false;
-				$returndata['message'] = 'Physician get_patients error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
-			}
-		} else {
-
-			$returndata['success'] = false;
-			$returndata['message'] = 'Undefined user scope!';
-		}
-
-		// $returndata['data'] = $request->user();
-
-		return $returndata;
-	}
-
-	public function get_dashboard_data($pratitioner_external_id){
+	private function get_dashboard_data($pratitioner_external_id){
 		$onqueue = PatientVisit::select()
 		->leftJoin('patient_care_providers','patient_visits.id','=','patient_care_providers.patient_visit_id')
 		->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 		->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
 		->where('patient_visits.status','<>','X')
-		->where('practitioners.external_id','=',$pratitioner_external_id)
-		->where('patient_care_provider_transactions.status', null)->count();
+		// ->where('practitioners.external_id','=',$pratitioner_external_id)
+		->where('patient_care_provider_transactions.status', null)
+		->where(function($whereClause) use ($pratitioner_external_id) {
+			if($pratitioner_external_id){
+				$whereClause->where('practitioners.external_id','=',$pratitioner_external_id);
+			}
+		})
+		->count();
 
 		$completed = PatientVisit::select()
 		->leftJoin('patient_care_providers','patient_visits.id','=','patient_care_providers.patient_visit_id')
 		->leftJoin('patient_care_provider_transactions','patient_care_providers.id','=','patient_care_provider_transactions.patient_care_provider_id')
 		->leftJoin('practitioners','practitioners.id','=','patient_care_providers.practitioner_id')
 		->where('patient_visits.status','<>','X')
-		->where('practitioners.external_id','=',$pratitioner_external_id)
-		->where('patient_care_provider_transactions.status', 1)->count();
+		// ->where('practitioners.external_id','=',$pratitioner_external_id)
+		->where('patient_care_provider_transactions.status', 1)
+		->where(function($whereClause) use ($pratitioner_external_id) {
+			if($pratitioner_external_id){
+				$whereClause->where('practitioners.external_id','=',$pratitioner_external_id);
+			}
+		})
+		->count();
 
 		$returndata['onqueue'] = $onqueue;
 		$returndata['completed'] = $completed;
 		return $returndata;
 	}
 
-	public function set_professional_fee(Request $request) {
+	public function set_professional_fee(UserInterface $iUser, Request $request) {
 
     	$returndata = array('success'=>true,'message'=>null,'data'=>null);
 
-		if ($request->user()->tokenCan('physician')) {
+		// if ($request->user()->tokenCan('physician')) {
 			DB::beginTransaction();
 			try {
 				Log::info('Start updating pf');
 				Log::info($request);
-				$save_patient_care_provider_tx = PatientCareProviderTransaction::where('patient_care_provider_id', $request->PatientCareProvider['id'])->first();
-				Log::info($save_patient_care_provider_tx);
+				$pf_amount = str_replace(",", "", $request['data']['PatientCareProvider']['pf_amount']);
+				$save_patient_care_provider_tx = PatientCareProviderTransaction::where('patient_care_provider_id', $request['data']['PatientCareProvider']['id'])->first();
 				if($save_patient_care_provider_tx->expired_at && $save_patient_care_provider_tx->expired_at <= date('Y-m-d H:i:s')){
 					// TODO: ADD VALIDATION EXPIRATION DATE SHOULD COME FROM DB NOT FROM DATA POSTED.
 					$returndata['message'] = "You can no longer edit your PF.";
@@ -325,11 +346,11 @@ class PhysicianController extends Controller
 				}else{
 					$non_pay = false;
 					// Check if already posted.
-					$update_pcp = PatientCareProvider::findOrFail($request->PatientCareProvider['id']);
+					$update_pcp = PatientCareProvider::findOrFail($request['data']['PatientCareProvider']['id']);
 					if($save_patient_care_provider_tx->status != 1){
-						$pv = PatientVisit::findOrFail($request->PatientVisit['id']);
-						$pvmp = PatientVisitMedicalPackage::where('patient_visit_id','=',$request->PatientVisit['id'])->first();
-						if($pvmp || $pv->hospitalization_plan=='IHMO'){
+						$pv = PatientVisit::findOrFail($request['data']['PatientVisit']['id']);
+						$pvmp = PatientVisitMedicalPackage::where('patient_visit_id','=',$request['data']['PatientVisit']['id'])->first();
+						if($pvmp || $pv->hospitalization_plan=='IHMO'){ // NHIP membership_id = 1036
 							Log::info('Non-Pay');
 							$non_pay = true;
 						}
@@ -350,19 +371,19 @@ class PhysicianController extends Controller
 							// }
 							$returndata['message'] = 'Forbidden access.';
 						}else{
-							$update_pcp->pf_amount = $request->PatientCareProvider['pf_amount'];
+							$update_pcp->pf_amount = $pf_amount;
 							Log::info('Updating PCP.');
 							Log::info('Start NON-HMO/NO MP PCP.');
 							Log::info($update_pcp);
 							if($update_pcp->save()){
-								$save_patient_care_provider_tx->pf_amount = $request->PatientCareProvider['pf_amount'];
+								$save_patient_care_provider_tx->pf_amount = $pf_amount;
 								$save_patient_care_provider_tx->status = 0;
 								$save_patient_care_provider_tx->expired_at = null;
 								$save_patient_care_provider_tx->follow_up_at = null;
 								Log::info('Updating PCPT.');
 								Log::info($save_patient_care_provider_tx);
 								if ($save_patient_care_provider_tx->save()){
-									$returndata['message'] = 'PF has been saved.';
+									$returndata['message'] = $pf_amount.' PF has been saved.';
 								}
 							}
 						}
@@ -371,22 +392,48 @@ class PhysicianController extends Controller
 						$returndata['success'] = false;
 					}
 				}
+				$audit_data = array(
+					"user_id" => $request->user()->id,
+					"url" => "physician/set_professional_fee",
+					"action" => "physician.set_professional_fee",
+					"remarks" => $returndata['message'],
+					"device" => null,
+					"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+					"device_os" => null,
+					"browser" => null,
+					"browser_version" => null
+				);
+				$iUser->audit($audit_data);
 				DB::commit();
 				Log::info('End updating pf');
 			} catch(\Exception $e) {
+				$audit_data = array(
+					"user_id" => $request->user()->id,
+					"url" => "physician/set_professional_fee",
+					"action" => "physician.set_professional_fee",
+					"remarks" => $returndata['message'],
+					"device" => null,
+					"ip_address" => ($request->ip_address)?$request->ip_address:$request->ip(),
+					"device_os" => null,
+					"browser" => null,
+					"browser_version" => null
+				);
+				$iUser->audit($audit_data);
 				DB::rollBack();
 				$returndata['success'] = false;
 				$returndata['message'] = 'Physician set_professional_fee error! Stacktrace: (Message: '.$e->getMessage().'; Line: '.$e->getLine().')';
 			}
-		} else {
+		// } else {
 
-			$returndata['success'] = false;
-			$returndata['message'] = 'Undefined user scope!';
-		}
+		// 	$returndata['success'] = false;
+		// 	$returndata['message'] = 'Undefined user scope!';
+		// }
 
 		// $returndata['data'] = $request->user();
-
-		return $returndata;
+		if($returndata['success'])
+			return redirect('/physician/dashboard')->with('status', $returndata['message']);
+		else
+			return redirect('/physician/dashboard')->withErrors($returndata['message']);
 	}
 
 	public function get_professional_fee(Request $request) {
@@ -538,5 +585,66 @@ class PhysicianController extends Controller
 		// $returndata['data'] = $request->user();
 
 		return $returndata;
+	}
+
+	public function get_remaining_time(Request $request) {
+		$expiration_datetime = strtotime($request['expiration_datetime']);   
+		$datetimenow = strtotime('now');
+		// Formulate the Difference between two dates 
+		$diff = $expiration_datetime - $datetimenow;  
+		$remainingTime['abs'] = $diff;
+		  
+		// To get the year divide the resultant date into 
+		// total seconds in a year (365*60*60*24) 
+		$years = floor($diff / (365*60*60*24));  
+		  
+		  
+		// To get the month, subtract it with years and 
+		// divide the resultant date into 
+		// total seconds in a month (30*60*60*24) 
+		$months = floor(($diff - $years * 365*60*60*24) 
+		                               / (30*60*60*24));  
+		  
+		  
+		// To get the day, subtract it with years and  
+		// months and divide the resultant date into 
+		// total seconds in a days (60*60*24) 
+		$days = floor(($diff - $years * 365*60*60*24 -  
+		             $months*30*60*60*24)/ (60*60*24)); 
+		  
+		  
+		// To get the hour, subtract it with years,  
+		// months & seconds and divide the resultant 
+		// date into total seconds in a hours (60*60) 
+		$hours = floor(($diff - $years * 365*60*60*24  
+		       - $months*30*60*60*24 - $days*60*60*24) 
+		                                   / (60*60));  
+		  
+		  
+		// To get the minutes, subtract it with years, 
+		// months, seconds and hours and divide the  
+		// resultant date into total seconds i.e. 60 
+		$minutes = floor(($diff - $years * 365*60*60*24  
+		         - $months*30*60*60*24 - $days*60*60*24  
+		                          - $hours*60*60)/ 60);  
+		  
+		  
+		// To get the minutes, subtract it with years, 
+		// months, seconds, hours and minutes  
+		$seconds = floor(($diff - $years * 365*60*60*24  
+		         - $months*30*60*60*24 - $days*60*60*24 
+		                - $hours*60*60 - $minutes*60));  
+		  
+		// Print the result 
+		// $diff = $years.' Years '. $months.' Months '. $days.' Days '. $hours.' Hours '. $minutes.' Minutes '. $seconds.' Seconds'; 
+		$diff = $hours.' Hours '. $minutes.' Minutes '. $seconds.' Seconds'; 
+
+		$remainingTime['readable'] = $diff;
+		return $remainingTime;
+	}
+	
+	public static function get_config($config_id) {
+		$config = Configuration::where('id',$config_id)->first();
+		return $config;
 	}
 }

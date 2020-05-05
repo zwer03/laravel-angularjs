@@ -1,0 +1,306 @@
+/* ---------------------------------------------------------------------- */
+/*  Theme Default
+/* ---------------------------------------------------------------------- */
+/* line 10, ../../sass/themes/theme-style3.scss */
+body {
+  background-color: #F6F6F6 !important;
+}
+/* line 12, ../../sass/themes/theme-style3.scss */
+body.layout-boxed {
+  background: url("../../images/bg_3.png") #F6F6F6;
+}
+
+/* line 16, ../../sass/themes/theme-style3.scss */
+.main-container, #pageslide-left, #pageslide-right {
+  background-color: #F6F6F6 !important;
+}
+
+/* line 19, ../../sass/themes/theme-style3.scss */
+.label-default, .badge-default {
+  background: #00BDCC !important;
+}
+
+/* line 22, ../../sass/themes/theme-style3.scss */
+.topbar {
+  background: #EFEFEF;
+  background-color: white 0px;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(white 0px), to(#EFEFEF 100%));
+  background-image: -webkit-linear-gradient(top, white 0px, #EFEFEF 100%);
+  background-image: -moz-linear-gradient(top, white 0px, #EFEFEF 100%);
+  background-image: -ms-linear-gradient(top, white 0px, #EFEFEF 100%);
+  background-image: -o-linear-gradient(top, white 0px, #EFEFEF 100%);
+  background-image: linear-gradient(top, white 0px, #EFEFEF 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='white 0px', endColorStr='#EFEFEF 100%');
+}
+/* line 25, ../../sass/themes/theme-style3.scss */
+.topbar > .container .navbar-brand, .topbar .logo {
+  color: #838383;
+}
+/* line 28, ../../sass/themes/theme-style3.scss */
+.topbar .sb-toggle-left i {
+  color: #6a6a6a;
+}
+/* line 32, ../../sass/themes/theme-style3.scss */
+.topbar .topbar-tools > ul > li > a {
+  color: #1d1d1d;
+}
+/* line 35, ../../sass/themes/theme-style3.scss */
+.topbar .topbar-tools > ul > li.right-menu-toggle > a {
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: #EFEFEF;
+}
+/* line 41, ../../sass/themes/theme-style3.scss */
+.topbar .nav li.dropdown.open > .dropdown-toggle, .topbar .nav li.dropdown.active > .dropdown-toggle, .topbar .nav li.dropdown.open.active > .dropdown-toggle {
+  background: none;
+  color: #838383;
+}
+/* line 45, ../../sass/themes/theme-style3.scss */
+.topbar .nav > li:hover > a, .topbar .nav > li:active > a, .topbar .nav > li > a:focus {
+  color: #838383;
+  background: none;
+}
+
+/* line 52, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu > li a {
+  border-bottom: none;
+  border-top-color: #e9e9e9;
+  color: #1d1d1d;
+}
+/* line 56, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu > li a i {
+  color: #b6b6b6;
+  font-weight: normal;
+}
+/* line 61, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu > li.active > a {
+  background: #e7e7e7 !important;
+  border-top: none !important;
+  color: #2C2F3B;
+}
+/* line 65, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu > li.active > a i {
+  color: #2C2F3B;
+}
+
+/* line 70, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu li > ul.sub-menu > li > a:hover {
+  background: #e7e7e7;
+}
+
+/* line 73, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu li > ul.sub-menu > li.open > a, ul.main-navigation-menu li > ul.sub-menu > li.active > a, ul.main-navigation-menu li > ul.sub-menu > li.open > a:hover, ul.main-navigation-menu li > ul.sub-menu > li.active > a:hover {
+  background: #f1f1f1;
+}
+
+/* line 76, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu > li.open > a, ul.main-navigation-menu > li > a:hover, ul.main-navigation-menu > li:hover > a {
+  background-color: #f1f1f1;
+}
+
+/* line 79, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu li.divider {
+  background-color: #e9e9e9 !important;
+}
+
+/* line 83, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu > li.open > a, ul.main-navigation-menu > li > a:hover, ul.main-navigation-menu > li:hover > a {
+  background-color: #f1f1f1;
+}
+
+/* line 87, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu li.dropdown-header, ul.main-navigation-menu .mega-menu-sub-title {
+  color: #aaaaaa !important;
+}
+
+/* line 90, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu li.dropdown-header, ul.main-navigation-menu .mega-menu-sub-title {
+  color: #aaaaaa !important;
+}
+
+/* line 93, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu a {
+  color: #1d1d1d !important;
+}
+/* line 95, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu a:hover {
+  background: none !important;
+}
+
+/* line 99, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li.active a, ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li.active a:hover, ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li.active a:focus {
+  background-color: #e7e7e7 !important;
+  text-decoration: none;
+}
+
+/* line 103, ../../sass/themes/theme-style3.scss */
+ul.main-navigation-menu .mega-menu .mega-menu-content ul.mega-sub-menu li a:hover {
+  background-color: #e7e7e7 !important;
+  text-decoration: none;
+}
+
+/* line 108, ../../sass/themes/theme-style3.scss */
+#horizontal-menu .container {
+  background: #F6F6F6;
+}
+/* line 114, ../../sass/themes/theme-style3.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li > a {
+  color: #838383;
+}
+/* line 116, ../../sass/themes/theme-style3.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li > a:hover {
+  color: #1d1d1d;
+  background: #e9e9e9;
+}
+/* line 120, ../../sass/themes/theme-style3.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li > a:active, #horizontal-menu .navbar-collapse .navbar-nav > li > a:focus {
+  background: #dddddd;
+}
+/* line 125, ../../sass/themes/theme-style3.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li.active > a {
+  color: white;
+  background: #00BDCC;
+}
+/* line 128, ../../sass/themes/theme-style3.scss */
+#horizontal-menu .navbar-collapse .navbar-nav > li.active > a:after {
+  border-top-color: #00BDCC;
+}
+
+/* line 138, ../../sass/themes/theme-style3.scss */
+.main-content {
+  background: #DDDDDD;
+}
+
+/* line 141, ../../sass/themes/theme-style3.scss */
+.go-top {
+  color: #838383;
+}
+
+/* line 144, ../../sass/themes/theme-style3.scss */
+.footer-inner {
+  color: #838383;
+}
+
+/* line 149, ../../sass/themes/theme-style3.scss */
+#pageslide-left .navigation-toggler .sb-toggle-left {
+  background: url(../../images/dark_dots.png) no-repeat center center;
+}
+/* line 154, ../../sass/themes/theme-style3.scss */
+#pageslide-left .slide-tools {
+  background-color: #e9e9e9;
+}
+/* line 157, ../../sass/themes/theme-style3.scss */
+#pageslide-left .btn {
+  color: rgba(44, 47, 59, 0.3);
+}
+/* line 159, ../../sass/themes/theme-style3.scss */
+#pageslide-left .btn:hover {
+  color: #2C2F3B;
+  background-color: rgba(215, 215, 215, 0.4);
+}
+/* line 164, ../../sass/themes/theme-style3.scss */
+#pageslide-left .user-profile {
+  border-color: #e9e9e9;
+  position: relative;
+}
+/* line 167, ../../sass/themes/theme-style3.scss */
+#pageslide-left .user-profile h5 {
+  color: #aaaaaa;
+}
+/* line 170, ../../sass/themes/theme-style3.scss */
+#pageslide-left .user-profile h4 {
+  color: #2C2F3B;
+}
+
+/* line 175, ../../sass/themes/theme-style3.scss */
+.closedbar {
+  background: #e9e9e9 url(../../images/dark_dots.png) no-repeat center 5px !important;
+}
+/* line 177, ../../sass/themes/theme-style3.scss */
+.closedbar:hover {
+  background-color: #F6F6F6 !important;
+}
+
+/* line 182, ../../sass/themes/theme-style3.scss */
+#pageslide-right .pageslide-title {
+  color: rgba(44, 47, 59, 0.4);
+}
+/* line 186, ../../sass/themes/theme-style3.scss */
+#pageslide-right .notifications a {
+  color: rgba(44, 47, 59, 0.4);
+  background: #eeeeee;
+}
+/* line 189, ../../sass/themes/theme-style3.scss */
+#pageslide-right .notifications a:hover {
+  background: #e9e9e9;
+}
+/* line 192, ../../sass/themes/theme-style3.scss */
+#pageslide-right .notifications a .time {
+  color: #aaaaaa;
+}
+/* line 198, ../../sass/themes/theme-style3.scss */
+#pageslide-right .right-wrapper .nav-tabs li a {
+  background: #F6F6F6;
+  border-bottom-color: #dddddd;
+}
+/* line 202, ../../sass/themes/theme-style3.scss */
+#pageslide-right .right-wrapper .nav-tabs li.active a {
+  border-right-color: #dddddd;
+  border-left-color: #dddddd;
+  color: rgba(44, 47, 59, 0.9);
+}
+/* line 208, ../../sass/themes/theme-style3.scss */
+#pageslide-right .media-list .media {
+  border-bottom: 1px solid #dddddd;
+  margin: 0;
+}
+/* line 211, ../../sass/themes/theme-style3.scss */
+#pageslide-right .media-list .media .media-heading {
+  color: #374c57 !important;
+}
+/* line 214, ../../sass/themes/theme-style3.scss */
+#pageslide-right .media-list .media a:hover {
+  background: #dddddd;
+}
+/* line 217, ../../sass/themes/theme-style3.scss */
+#pageslide-right .media-list .media .status-online {
+  color: #1FBBA6;
+}
+/* line 220, ../../sass/themes/theme-style3.scss */
+#pageslide-right .media-list .media .media-body span {
+  color: #444444;
+}
+/* line 223, ../../sass/themes/theme-style3.scss */
+#pageslide-right .media-list .media label {
+  color: #5d5d5d;
+}
+/* line 227, ../../sass/themes/theme-style3.scss */
+#pageslide-right .sidebar-title {
+  color: rgba(44, 47, 59, 0.4);
+}
+/* line 230, ../../sass/themes/theme-style3.scss */
+#pageslide-right .sidebar-back {
+  color: rgba(44, 47, 59, 0.4);
+}
+/* line 232, ../../sass/themes/theme-style3.scss */
+#pageslide-right .sidebar-back:hover {
+  color: rgba(44, 47, 59, 0.6);
+}
+
+/* line 238, ../../sass/themes/theme-style3.scss */
+#style_selector_container .box-title {
+  color: rgba(44, 47, 59, 0.8) !important;
+}
+/* line 241, ../../sass/themes/theme-style3.scss */
+#style_selector_container .images {
+  border-bottom: 1px solid #e9e9e9;
+}
+/* line 243, ../../sass/themes/theme-style3.scss */
+#style_selector_container .images img.active {
+  border: 2px solid #505050;
+}
+
+/* line 248, ../../sass/themes/theme-style3.scss */
+footer {
+  background-color: #F6F6F6;
+}
